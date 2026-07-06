@@ -15,7 +15,7 @@ export class AuthRepository {
   private static extractUserAgent(req?: Request): string {
     return req?.headers['user-agent'] || 'unknown';
   }
-  
+
   private static extractRequestId(req?: Request): string {
     return (req?.headers['x-request-id'] as string) || 'unknown';
   }
@@ -170,7 +170,8 @@ export class AuthRepository {
       const user = await tx.user.update({
         where: { id: userId },
         data: {
-          status: 'ACTIVE',
+          // Keep user in PENDING_APPROVAL status until admin approves
+          // status: 'ACTIVE',  // Commented out - admin approval required
           email_verified: true,
         },
         include: {
@@ -218,7 +219,7 @@ export class AuthRepository {
       });
     });
   }
-  
+
   static async getActivePasswordResetToken(email: string) {
     return prisma.verificationToken.findFirst({
       where: {
@@ -236,7 +237,7 @@ export class AuthRepository {
       data: { consumed_at: new Date() }
     });
   }
-  
+
   static async logAudit(eventType: AuditEventType, userId?: string, orgId?: string, metadata?: any, req?: Request) {
     await prisma.auditLog.create({
       data: {
@@ -253,7 +254,7 @@ export class AuthRepository {
   // ==========================================
   // Social Login
   // ==========================================
-  
+
   static async findOrCreateSocialUser(email: string, firebaseUid: string, req?: Request) {
     const ip = this.extractIp(req);
     const userAgent = this.extractUserAgent(req);
@@ -303,7 +304,7 @@ export class AuthRepository {
         role = await tx.role.create({ data: { name: 'user', description: 'Standard user', organization_id: org.id } });
       }
       await tx.userRole.create({ data: { user_id: user.id, role_id: role.id } });
-      
+
       // Update returned user object with role
       user.user_roles = [{ user_id: user.id, role_id: role.id, role }];
 
@@ -338,7 +339,7 @@ export class AuthRepository {
     const userAgent = this.extractUserAgent(req);
     // Simple parsing for metadata
     const os = userAgent.includes('Windows') ? 'Windows' : userAgent.includes('Mac') ? 'MacOS' : userAgent.includes('Linux') ? 'Linux' : 'Unknown';
-    
+
     return prisma.userSession.create({
       data: {
         user_id: userId,
@@ -368,7 +369,7 @@ export class AuthRepository {
 
       const oldSession = await tx.userSession.findUnique({
         where: { refresh_token_hash: oldTokenHash },
-        include: { 
+        include: {
           user: {
             include: {
               organization: true,
@@ -376,7 +377,7 @@ export class AuthRepository {
                 include: { role: true }
               }
             }
-          } 
+          }
         }
       });
 
@@ -391,7 +392,7 @@ export class AuthRepository {
           where: { family_id: oldSession.family_id, revoked_at: null },
           data: { revoked_at: new Date(), revoked_reason: 'REUSE_DETECTED' }
         });
-        
+
         await tx.auditLog.create({
           data: {
             event_type: 'TOKEN_REUSE_DETECTED',

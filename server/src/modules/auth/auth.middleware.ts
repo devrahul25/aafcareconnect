@@ -70,14 +70,24 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     // 4. Resolve Permissions dynamically
     const permissions = await permissionService.getPermissions(payload.sub);
 
-    // 5. Hydrate Request Context
-    const authReq = req as AuthenticatedRequest;
+    // 5. Hydrate Request Context (compatible with existing middleware)
+    const authReq = req as any; // Cast to any to allow dynamic properties
+
+    // Set user with full context (for tenantContext compatibility)
     authReq.user = {
       id: payload.sub,
       organization_id: payload.org,
       session_version: payload.session_version,
       sid: payload.sid,
+      organization: session.user.organization, // Required by tenantContext
+      status: session.user.status,
+      email: session.user.email,
+      full_name: session.user.full_name,
     };
+
+    // Set organizationId at request level (required by tenantContext)
+    authReq.organizationId = payload.org;
+
     authReq.sessionId = session.id;
     authReq.organizationStatus = session.user.organization.status;
     authReq.permissions = permissions;

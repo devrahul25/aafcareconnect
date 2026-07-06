@@ -24,6 +24,7 @@ enum OrganizationStatus {
 }
 
 enum UserStatus {
+  PENDING_APPROVAL
   ACTIVE
   INACTIVE
   SUSPENDED
@@ -128,20 +129,33 @@ model User {
   phone           String?
   avatar_url      String?
   organization_id String
-  status          UserStatus @default(ACTIVE)
+  status          UserStatus @default(PENDING_APPROVAL)
   session_version Int        @default(1)
   last_login_at   DateTime?
   email_verified  Boolean    @default(false)
+  approved_by     String?
+  approved_at     DateTime?
+  rejection_reason String?
   created_at      DateTime   @default(now())
   updated_at      DateTime   @updatedAt
   deleted_at      DateTime?
 
-  organization        Organization        @relation(fields: [organization_id], references: [id], onDelete: Restrict)
-  user_roles          UserRole[]
-  user_permissions    UserPermission[]
-  verification_tokens VerificationToken[]
-  user_sessions       UserSession[]
-  audit_logs          AuditLog[]
+  organization               Organization        @relation(fields: [organization_id], references: [id], onDelete: Restrict)
+  approver                   User?               @relation("UserApprovals", fields: [approved_by], references: [id])
+  approved_users             User[]              @relation("UserApprovals")
+  user_roles                 UserRole[]
+  user_permissions           UserPermission[]
+  verification_tokens        VerificationToken[]
+  user_sessions              UserSession[]
+  audit_logs                 AuditLog[]
+  course_enrolments          CourseEnrolment[]
+  compliance_assigned        ComplianceRecord[]  @relation("ComplianceAssignedTo")
+  compliance_as_carer        ComplianceRecord[]  @relation("ComplianceCarer")
+  cpd_certificates           CPDCertificate[]
+  foster_carer_profile       FosterCarer?
+  workforce_member_profile   WorkforceMember?
+  supervised_carers          FosterCarer[]       @relation("SSWCarers")
+  placements_as_ssw          Placement[]
 
   @@index([organization_id])
   @@index([organization_id, status])
@@ -239,8 +253,9 @@ model Course {
   created_by          String?
   updated_by          String?
 
-  organization Organization    @relation(fields: [organization_id], references: [id], onDelete: Restrict)
+  organization Organization      @relation(fields: [organization_id], references: [id], onDelete: Restrict)
   sections     CourseSection[]
+  enrolments   CourseEnrolment[]
 
   @@index([organization_id])
   @@index([organization_id, status])
@@ -455,4 +470,261 @@ model AuditLog {
   @@index([user_id])
   @@index([event_type])
   @@map("audit_logs")
+}
+
+// ─── COURSE ENROLMENTS ────────────────────────────────────────────────────────
+
+enum EnrolmentStatus {
+  ENROLLED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model CourseEnrolment {
+  id               String           @id @default(uuid())
+  organization_id  String
+  course_id        String
+  user_id          String
+  status           EnrolmentStatus  @default(ENROLLED)
+  progress_percent Int              @default(0)
+  score            Int?
+  enrolled_date    DateTime         @default(now())
+  completed_date   DateTime?
+  certificate_url  String?
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  course Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([course_id, user_id])
+  @@index([organization_id])
+  @@index([user_id])
+  @@index([status])
+  @@map("course_enrolments")
+}
+
+// ─── COMPLIANCE RECORDS ───────────────────────────────────────────────────────
+
+enum ComplianceType {
+  ALLEGATION
+  COMPLAINT
+  SAFER_CARING
+  MISSING_FROM_CARE
+  REG_44
+  AUDIT
+  POLICY
+}
+
+enum ComplianceStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+enum CompliancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model ComplianceRecord {
+  id              String             @id @default(uuid())
+  organization_id String
+  type            ComplianceType
+  title           String
+  description     String?
+  assigned_to_id  String?
+  carer_id        String?
+  child_name      String?
+  incident_date   DateTime?
+  due_date        DateTime?
+  status          ComplianceStatus   @default(OPEN)
+  priority        CompliancePriority @default(MEDIUM)
+  outcome         String?
+  documents       String[]           @default([])
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+
+  assigned_to User? @relation("ComplianceAssignedTo", fields: [assigned_to_id], references: [id], onDelete: SetNull)
+  carer       User? @relation("ComplianceCarer", fields: [carer_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@index([status])
+  @@index([priority])
+  @@index([type])
+  @@map("compliance_records")
+}
+
+// ─── CPD CERTIFICATES ─────────────────────────────────────────────────────────
+
+enum CertificateStatus {
+  VALID
+  EXPIRING_SOON
+  EXPIRED
+}
+
+model CPDCertificate {
+  id              String            @id @default(uuid())
+  organization_id String
+  user_id         String
+  title           String
+  provider        String?
+  issue_date      DateTime
+  expiry_date     DateTime?
+  certificate_url String?
+  cpd_hours       Float?
+  category        String?
+  status          CertificateStatus @default(VALID)
+  verified        Boolean           @default(false)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime          @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([user_id])
+  @@index([status])
+  @@map("cpd_certificates")
+}
+
+// ─── FOSTER CARERS ────────────────────────────────────────────────────────────
+
+enum TrainingCompliance {
+  COMPLIANT
+  PARTIAL
+  NON_COMPLIANT
+}
+
+enum CarerStatus {
+  ACTIVE
+  INACTIVE
+  DEREGISTERED
+  UNDER_REVIEW
+}
+
+model FosterCarer {
+  id                   String              @id @default(uuid())
+  organization_id      String
+  user_id              String?             @unique
+  full_name            String
+  email                String
+  phone                String?
+  ssw_id               String?
+  address              String?
+  approval_date        DateTime?
+  approval_category    String?
+  max_placements       Int?
+  current_placements   Int                 @default(0)
+  annual_review_due    DateTime?
+  training_compliance  TrainingCompliance  @default(PARTIAL)
+  status               CarerStatus         @default(ACTIVE)
+  profile_photo_url    String?
+  created_at           DateTime            @default(now())
+  updated_at           DateTime            @updatedAt
+
+  user             User?       @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  supervising_ssw  User?       @relation("SSWCarers", fields: [ssw_id], references: [id], onDelete: SetNull)
+  placements       Placement[]
+
+  @@index([organization_id])
+  @@index([status])
+  @@index([email])
+  @@map("foster_carers")
+}
+
+// ─── WORKFORCE MEMBERS ────────────────────────────────────────────────────────
+
+enum RoleType {
+  SUPERVISING_SOCIAL_WORKER
+  INDEPENDENT_ASSESSOR
+  PANEL_MEMBER
+  TRAINER
+  MANAGER
+  ADMINISTRATOR
+}
+
+enum EmploymentType {
+  EMPLOYED
+  SELF_EMPLOYED
+  CONTRACTOR
+}
+
+enum WorkforceStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+model WorkforceMember {
+  id              String          @id @default(uuid())
+  organization_id String
+  user_id         String?         @unique
+  full_name       String
+  email           String
+  phone           String?
+  role_type       RoleType
+  employment_type EmploymentType?
+  dbs_number      String?
+  dbs_expiry      DateTime?
+  contract_url    String?
+  availability    String?
+  status          WorkforceStatus @default(ACTIVE)
+  caseload_count  Int             @default(0)
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@index([status])
+  @@index([role_type])
+  @@map("workforce_members")
+}
+
+// ─── PLACEMENTS ───────────────────────────────────────────────────────────────
+
+enum PlacementType {
+  EMERGENCY
+  SHORT_TERM
+  LONG_TERM
+  RESPITE
+  PARENT_CHILD
+}
+
+enum PlacementStatus {
+  REFERRAL
+  MATCHING
+  ACTIVE
+  ENDED
+  BREAKDOWN
+}
+
+model Placement {
+  id                 String          @id @default(uuid())
+  organization_id    String
+  child_name         String
+  child_dob          DateTime?
+  carer_id           String
+  ssw_id             String?
+  referral_source    String?
+  placement_start    DateTime?
+  placement_end      DateTime?
+  placement_type     PlacementType
+  status             PlacementStatus @default(REFERRAL)
+  notes              String?
+  needs_description  String?
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+
+  carer FosterCarer @relation(fields: [carer_id], references: [id], onDelete: Cascade)
+  ssw   User?       @relation(fields: [ssw_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@index([carer_id])
+  @@index([status])
+  @@map("placements")
 }

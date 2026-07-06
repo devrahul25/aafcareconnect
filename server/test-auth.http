@@ -1,0 +1,22 @@
+### Test Admin Login Flow
+# Step 1: Login with Firebase (simulate what the frontend does)
+# This would normally be done through Firebase client SDK
+
+### Step 2: Check what's in the database for admin user
+# Let's verify the admin user has proper roles and permissions
+
+### Step 3: Get courses (should work for admin)
+GET http://localhost:3001/api/v1/courses
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### Step 4: Create a course
+POST http://localhost:3001/api/v1/courses
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "title": "Test Course",
+  "description": "Testing permissions",
+  "category": "SAFEGUARDING",
+  "level": "FOUNDATION"
+}

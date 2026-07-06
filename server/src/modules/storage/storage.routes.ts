@@ -2,19 +2,19 @@ import { Router } from 'express';
 import * as controller from './storage.controller';
 import * as validator from './storage.validator';
 import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/authenticate';
+import { requireAuth } from '../auth/auth.middleware';
+import { requirePermission } from '../auth/authorization.middleware';
 import { tenantContext } from '../../middleware/tenantContext';
-import { authorize } from '../../middleware/authorize';
 
 const router = Router();
 
-// Apply common middlewares
-router.use(authenticate, tenantContext);
+// Apply middlewares
+router.use(requireAuth, tenantContext);
 
 // Endpoint to generate pre-signed upload URL for direct S3 upload
 router.post(
   '/upload-url',
-  authorize('storage', 'upload'),
+  requirePermission('storage', 'upload'),
   validate(validator.getUploadUrlSchema),
   controller.getUploadUrl,
 );
@@ -22,7 +22,7 @@ router.post(
 // Enforces max size constraints, mostly for documents
 router.post(
   '/upload-post-policy',
-  authorize('storage', 'upload'),
+  requirePermission('storage', 'upload'),
   validate(validator.getPostPolicySchema),
   controller.getPostPolicy,
 );
@@ -31,21 +31,21 @@ router.post(
 
 router.post(
   '/multipart/init',
-  authorize('storage', 'upload'),
+  requirePermission('storage', 'upload'),
   validate(validator.initMultipartSchema),
   controller.initMultipart,
 );
 
 router.post(
   '/multipart/sign',
-  authorize('storage', 'upload'),
+  requirePermission('storage', 'upload'),
   validate(validator.signPartSchema),
   controller.signPart,
 );
 
 router.post(
   '/multipart/complete',
-  authorize('storage', 'upload'),
+  requirePermission('storage', 'upload'),
   validate(validator.completeMultipartSchema),
   controller.completeMultipart,
 );

@@ -42,14 +42,14 @@ export class AuthService {
           if (dbUser) {
             throw new Error('Email already in use');
           }
-          
+
           // Orphaned Firebase Account Detected
           logger.warn(`Orphaned Firebase account detected for ${email}. Deleting and retrying...`);
-          
+
           await this.identityProvider.deleteUserByEmail(email);
-          
+
           if (registrationAttempts >= maxAttempts) {
-             throw new Error('Registration failed due to orphaned account. Please try again later.');
+            throw new Error('Registration failed due to orphaned account. Please try again later.');
           }
           continue; // Retry
         }
@@ -82,7 +82,10 @@ export class AuthService {
   async verifyOtp(email: string, code: string, req?: Request) {
     const user = await AuthRepository.findUserByEmail(email);
     if (!user) throw new Error('User not found');
-    if (user.status === 'ACTIVE') throw new Error('User already verified');
+    if (user.email_verified && user.status === 'PENDING_APPROVAL') {
+      throw new Error('Email already verified. Waiting for admin approval.');
+    }
+    if (user.status === 'ACTIVE') throw new Error('User already verified and approved');
 
     const token = await AuthRepository.getActiveOTP(email);
     if (!token) throw new Error('Code expired. Please request a new one.');
@@ -102,34 +105,40 @@ export class AuthService {
       throw new Error('Invalid verification code');
     }
 
-    const activeUser = await AuthRepository.verifyOTPAndActivateUser(token.id, user.id, req);
-    
+    const verifiedUser = await AuthRepository.verifyOTPAndActivateUser(token.id, user.id, req);
+
+    // User is verified but needs admin approval
+    if (verifiedUser.status === 'PENDING_APPROVAL') {
+      throw new Error('Email verified successfully. Your account is pending admin approval. You will be notified once approved.');
+    }
+
+    // If user is ACTIVE (shouldn't happen with current flow, but kept for backwards compatibility)
     // Determine role string
     let role_type = 'user';
-    if (activeUser.user_roles && activeUser.user_roles.length > 0) {
-      role_type = activeUser.user_roles[0].role?.name || 'user';
+    if (verifiedUser.user_roles && verifiedUser.user_roles.length > 0) {
+      role_type = verifiedUser.user_roles[0].role?.name || 'user';
     }
 
     const familyId = crypto.randomUUID();
     const rawRefreshToken = tokenService.generateRefreshToken();
     const hashedToken = tokenService.hashToken(rawRefreshToken);
 
-    await AuthRepository.createSession(activeUser.id, hashedToken, familyId, req);
+    await AuthRepository.createSession(verifiedUser.id, hashedToken, familyId, req);
 
     const access_token = tokenService.generateAccessToken({
-      sub: activeUser.id,
-      org: activeUser.organization_id,
+      sub: verifiedUser.id,
+      org: verifiedUser.organization_id,
       role: role_type,
       sid: familyId,
-      session_version: activeUser.session_version,
+      session_version: verifiedUser.session_version,
     });
 
-    return { access_token, refresh_token: rawRefreshToken, user: activeUser };
+    return { access_token, refresh_token: rawRefreshToken, user: verifiedUser };
   }
 
   async login(idToken: string, req?: Request) {
     const t0 = performance.now();
-    
+
     // 1. Verify Firebase Token (checkRevoked = true to enforce revocation list)
     let decodedToken;
     try {
@@ -146,6 +155,10 @@ export class AuthService {
 
     if (!user) {
       throw new Error('Account not found in the system');
+    }
+
+    if (user.status === 'PENDING_APPROVAL') {
+      throw new Error('Your account is pending admin approval. You will be notified once approved.');
     }
 
     if (user.status === 'INACTIVE') {
@@ -197,7 +210,7 @@ export class AuthService {
 
   async resendOtp(email: string, req?: Request) {
     const user = await AuthRepository.findUserByEmail(email);
-    if (!user) return true; 
+    if (!user) return true;
     if (user.status === 'ACTIVE') throw new Error('User already verified');
 
     const { code, hashedToken } = OTPUtil.generateOTP();
@@ -360,7 +373,7 @@ export class AuthService {
 
   async socialLogin(idToken: string, req?: Request) {
     const t0 = performance.now();
-    
+
     let decodedToken;
     try {
       decodedToken = await this.identityProvider.verifyToken(idToken, true);

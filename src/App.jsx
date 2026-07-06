@@ -12,20 +12,20 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 
 // Pages
-import Dashboard      from "@/pages/Dashboard";
-import LearningHub    from "@/pages/LearningHub";
-import CPDHub         from "@/pages/CPDHub";
-import CourseBuilder  from "@/pages/CourseBuilder";
-import Administration        from "@/pages/Administration";
-import CoursePlayer          from "@/pages/CoursePlayer";
-import ProfessionalPassport  from "@/pages/ProfessionalPassport";
-import ComplianceHub         from "@/pages/ComplianceHub";
+import Dashboard from "@/pages/Dashboard";
+import LearningHub from "@/pages/LearningHub";
+import CPDHub from "@/pages/CPDHub";
+import CourseBuilder from "@/pages/CourseBuilder";
+import Administration from "@/pages/Administration";
+import CoursePlayer from "@/pages/CoursePlayer";
+import ProfessionalPassport from "@/pages/ProfessionalPassport";
+import ComplianceHub from "@/pages/ComplianceHub";
 
 // Auth pages
-import Login          from "@/pages/Login";
-import Register       from "@/pages/Register";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword  from "@/pages/ResetPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth } = useAuth();
@@ -40,22 +40,22 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/login"          element={<Login />} />
-      <Route path="/register"       element={<Register />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/learning-hub/course/:courseId" element={<CoursePlayer />} />
         <Route element={<AppLayout />}>
-          <Route path="/"               element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard"           element={<Dashboard />} />
-          <Route path="/learning-hub"        element={<LearningHub />} />
-          <Route path="/cpd-certificates"    element={<CPDHub />} />
-          <Route path="/course-builder"      element={<CourseBuilder />} />
-          <Route path="/admin"                   element={<Administration />} />
-          <Route path="/professional-passport"   element={<ProfessionalPassport />} />
-          <Route path="/compliance-hub"          element={<ComplianceHub />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/learning-hub" element={<LearningHub />} />
+          <Route path="/cpd-certificates" element={<CPDHub />} />
+          <Route path="/course-builder" element={<CourseBuilder />} />
+          <Route path="/admin" element={<Administration />} />
+          <Route path="/professional-passport" element={<ProfessionalPassport />} />
+          <Route path="/compliance-hub" element={<ComplianceHub />} />
         </Route>
       </Route>
 

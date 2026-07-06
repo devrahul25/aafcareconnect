@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { tokenStorage } from '@/api/base44Client';
+import { tokenStorage, apiClient } from '@/api/base44Client';
 import { authApi } from '@/api/authApi';
 
 // ---------------------------------------------------------------------------
@@ -34,16 +34,16 @@ function isTokenExpired(token) {
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]                       = useState(null);
+  const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth]     = useState(true);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   // ---------------------------------------------------------------------------
   // Restore session from localStorage on mount
   // ---------------------------------------------------------------------------
   useEffect(() => {
     const restoreSession = async () => {
-      const accessToken  = tokenStorage.getAccessToken();
+      const accessToken = tokenStorage.getAccessToken();
       const refreshToken = tokenStorage.getRefreshToken();
 
       if (!accessToken && !refreshToken) {
@@ -51,18 +51,26 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Access token still valid — extract user from payload
+      // Access token still valid — extract user from payload and validate session
       if (accessToken && !isTokenExpired(accessToken)) {
         const payload = decodeJwtPayload(accessToken);
         if (payload) {
-          setUser(mapPayloadToUser(payload));
-          setIsAuthenticated(true);
-          setIsLoadingAuth(false);
-          return;
+          // Validate that the token has a valid session in the backend
+          try {
+            await apiClient.get('/courses', { params: { limit: 1 } });
+            // Token is valid, set user
+            setUser(mapPayloadToUser(payload));
+            setIsAuthenticated(true);
+            setIsLoadingAuth(false);
+            return;
+          } catch (error) {
+            // Token invalid (401/403) - clear and try refresh
+            console.log('Token validation failed, attempting refresh...');
+          }
         }
       }
 
-      // Access token expired — try silent refresh
+      // Access token expired or invalid — try silent refresh
       if (refreshToken) {
         try {
           const result = await authApi.refresh(refreshToken);
@@ -74,8 +82,13 @@ export const AuthProvider = ({ children }) => {
             setIsAuthenticated(true);
           }
         } catch {
+          // Refresh also failed - clear everything and force re-login
+          console.log('🔄 Token refresh failed. Please login again.');
           tokenStorage.clearTokens();
         }
+      } else {
+        // No refresh token available - clear and force re-login
+        tokenStorage.clearTokens();
       }
 
       setIsLoadingAuth(false);
@@ -90,13 +103,13 @@ export const AuthProvider = ({ children }) => {
   /** Maps JWT payload fields to the user shape expected by the UI. */
   function mapPayloadToUser(payload) {
     return {
-      id:           payload.sub,
-      email:        payload.email,
-      full_name:    payload.full_name || payload.name || '',
-      role:         payload.role_type || payload.role || 'user',
-      role_type:    payload.role_type || payload.role || 'user',
+      id: payload.sub,
+      email: payload.email,
+      full_name: payload.full_name || payload.name || '',
+      role: payload.role_type || payload.role || 'user',
+      role_type: payload.role_type || payload.role || 'user',
       organization_id: payload.organization_id || null,
-      session_id:   payload.sid || null,
+      session_id: payload.sid || null,
     };
   }
 
@@ -122,7 +135,7 @@ export const AuthProvider = ({ children }) => {
 
     if (refreshToken) {
       // Best-effort server revocation — don't block UI on failure
-      authApi.logout(refreshToken).catch(() => {});
+      authApi.logout(refreshToken).catch(() => { });
     }
 
     if (redirectToLogin) {
@@ -145,22 +158,49 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login';
   }, []);
 
+  // ---------------------------------------------------------------------------
+  // forceRefreshToken — manually refresh the access token
+  // ---------------------------------------------------------------------------
+  const forceRefreshToken = useCallback(async () => {
+    const refreshToken = tokenStorage.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const result = await authApi.refresh(refreshToken);
+      const { access_token, refresh_token: newRefresh } = result.data;
+      tokenStorage.setTokens(access_token, newRefresh);
+      const payload = decodeJwtPayload(access_token);
+      if (payload) {
+        setUser(mapPayloadToUser(payload));
+      }
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      // If refresh fails, log out
+      await logout();
+      return false;
+    }
+  }, [logout]);
+
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
       isLoadingAuth,
       // kept for backwards compat with AppLayout / TopBar
-      organisationId:  user?.organization_id || null,
-      organisation:    null,
-      authError:       null,
+      organisationId: user?.organization_id || null,
+      organisation: null,
+      authError: null,
       isLoadingPublicSettings: false,
-      authChecked:     !isLoadingAuth,
+      authChecked: !isLoadingAuth,
       login,
       logout,
       logoutAll,
+      forceRefreshToken,
       navigateToLogin: () => { window.location.href = '/login'; },
-      checkUserAuth:   () => {},
+      checkUserAuth: () => { },
     }}>
       {children}
     </AuthContext.Provider>

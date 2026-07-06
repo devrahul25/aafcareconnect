@@ -42,6 +42,23 @@ export const createSectionSchema = z.object({
   }),
 });
 
+export const updateSectionSchema = z.object({
+  body: z.object({
+    title: z.string().min(3).max(200).optional(),
+    type: z.enum(['VIDEO', 'DOCUMENT', 'RICH_TEXT', 'QUIZ']).optional(),
+    sort_order: z.number().int().optional(),
+  }),
+});
+
+export const reorderSectionsSchema = z.object({
+  body: z.object({
+    sections: z.array(z.object({
+      id: z.string().uuid(),
+      sort_order: z.number().int(),
+    })),
+  }),
+});
+
 // Videos
 export const createVideoSchema = z.object({
   body: z.object({
@@ -52,6 +69,18 @@ export const createVideoSchema = z.object({
     thumbnail_url: z.string().url().optional(),
     transcript: z.string().optional(),
     sort_order: z.number().int().default(0),
+  }),
+});
+
+export const updateVideoSchema = z.object({
+  body: z.object({
+    title: z.string().min(3).max(200).optional(),
+    s3_key: z.string().optional(),
+    cloudfront_url: z.string().url().optional(),
+    duration_secs: z.number().int().positive().optional(),
+    thumbnail_url: z.string().url().optional(),
+    transcript: z.string().optional(),
+    sort_order: z.number().int().optional(),
   }),
 });
 
@@ -66,12 +95,30 @@ export const createDocumentSchema = z.object({
   }),
 });
 
+export const updateDocumentSchema = z.object({
+  body: z.object({
+    title: z.string().min(3).max(200).optional(),
+    s3_key: z.string().optional(),
+    file_type: z.string().optional(),
+    file_size: z.number().int().positive().optional(),
+    sort_order: z.number().int().optional(),
+  }),
+});
+
 // Rich Text
 export const createRichTextSchema = z.object({
   body: z.object({
     title: z.string().min(3).max(200),
     content: z.any(), // JSON content
     sort_order: z.number().int().default(0),
+  }),
+});
+
+export const updateRichTextSchema = z.object({
+  body: z.object({
+    title: z.string().min(3).max(200).optional(),
+    content: z.any().optional(),
+    sort_order: z.number().int().optional(),
   }),
 });
 
@@ -82,5 +129,48 @@ export const createQuizSchema = z.object({
     pass_mark: z.number().int().min(0).max(100).default(80),
     time_limit: z.number().int().positive().optional(),
     sort_order: z.number().int().default(0),
+  }),
+});
+
+export const updateQuizSchema = z.object({
+  body: z.object({
+    title: z.string().min(3).max(200).optional(),
+    pass_mark: z.number().int().min(0).max(100).optional(),
+    time_limit: z.number().int().positive().optional(),
+    sort_order: z.number().int().optional(),
+  }),
+});
+
+// Quiz Questions
+export const createQuizQuestionSchema = z.object({
+  body: z.object({
+    question: z.string().min(5).max(500),
+    explanation: z.string().optional(),
+    sort_order: z.number().int().default(0),
+  }),
+});
+
+export const updateQuizQuestionSchema = z.object({
+  body: z.object({
+    question: z.string().min(5).max(500).optional(),
+    explanation: z.string().optional(),
+    sort_order: z.number().int().optional(),
+  }),
+});
+
+// Quiz Answers
+export const createQuizAnswerSchema = z.object({
+  body: z.object({
+    text: z.string().min(1).max(300),
+    is_correct: z.boolean().default(false),
+    sort_order: z.number().int().default(0),
+  }),
+});
+
+export const updateQuizAnswerSchema = z.object({
+  body: z.object({
+    text: z.string().min(1).max(300).optional(),
+    is_correct: z.boolean().optional(),
+    sort_order: z.number().int().optional(),
   }),
 });

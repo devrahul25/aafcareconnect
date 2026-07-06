@@ -15,13 +15,13 @@ async function main() {
       status: 'ACTIVE',
     }
   }).catch(async () => {
-     let org = await prisma.organization.findFirst({ where: { name: 'CareConnect Demo Authority' } });
-     if (!org) {
-       org = await prisma.organization.create({
-         data: { name: 'CareConnect Demo Authority', type: 'LOCAL_AUTHORITY', status: 'ACTIVE' }
-       });
-     }
-     return org;
+    let org = await prisma.organization.findFirst({ where: { name: 'CareConnect Demo Authority' } });
+    if (!org) {
+      org = await prisma.organization.create({
+        data: { name: 'CareConnect Demo Authority', type: 'LOCAL_AUTHORITY', status: 'ACTIVE' }
+      });
+    }
+    return org;
   });
   console.log(`✅ Organization created: ${demoOrg.name}`);
 
@@ -31,7 +31,16 @@ async function main() {
     { resource: 'users', action: 'read', description: 'View users' },
     { resource: 'users', action: 'update', description: 'Edit users' },
     { resource: 'users', action: 'delete', description: 'Delete users' },
+    { resource: 'courses', action: 'create', description: 'Create courses' },
+    { resource: 'courses', action: 'read', description: 'View courses' },
+    { resource: 'courses', action: 'update', description: 'Update courses' },
+    { resource: 'courses', action: 'delete', description: 'Delete courses' },
     { resource: 'courses', action: 'manage', description: 'Manage all courses' },
+    { resource: 'compliance', action: 'create', description: 'Create compliance records' },
+    { resource: 'compliance', action: 'read', description: 'View compliance records' },
+    { resource: 'compliance', action: 'update', description: 'Update compliance records' },
+    { resource: 'compliance', action: 'delete', description: 'Delete compliance records' },
+    { resource: 'storage', action: 'upload', description: 'Upload files to storage' },
     { resource: 'system', action: 'root', description: 'Full Unrestricted Access' },
   ];
 
@@ -56,11 +65,11 @@ async function main() {
   for (const r of rolesData) {
     let role = await prisma.role.findFirst({ where: { name: r.name } });
     if (!role) {
-      role = await prisma.role.create({ 
+      role = await prisma.role.create({
         data: {
           ...r,
           organization_id: demoOrg.id
-        } 
+        }
       });
     }
     roles.push(role);
@@ -71,7 +80,7 @@ async function main() {
   // Admin gets system:root
   const adminRole = roles.find(r => r.name === 'admin');
   const rootPerm = permissions.find(p => p.resource === 'system' && p.action === 'root');
-  
+
   if (adminRole && rootPerm) {
     const existingRP = await prisma.rolePermission.findFirst({
       where: { role_id: adminRole.id, permission_id: rootPerm.id }
@@ -86,7 +95,7 @@ async function main() {
   // 5. Provision Super Admin User
   const adminEmail = 'admin@demo.com';
   let superAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  
+
   if (!superAdmin) {
     superAdmin = await prisma.user.create({
       data: {
