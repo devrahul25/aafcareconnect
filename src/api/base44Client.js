@@ -1,37 +1,120 @@
-import { createClient } from '@base44/sdk';
-import { appParams } from '@/lib/app-params';
+import axios from 'axios';
 
-// Guard: sandboxed iframes (app preview) may block `window.localStorage`
-// with a SecurityError, which crashes the SDK's createClient. Install an
-// in-memory shim before the SDK runs so it keeps working read-only.
-(function ensureSafeLocalStorage() {
-  try {
-    window.localStorage.setItem('__base44_probe__', '1');
-    window.localStorage.removeItem('__base44_probe__');
-  } catch (e) {
-    const mem = new Map();
-    Object.defineProperty(window, 'localStorage', {
-      configurable: true,
-      value: {
-        getItem: (k) => (mem.has(k) ? mem.get(k) : null),
-        setItem: (k, v) => mem.set(k, String(v)),
-        removeItem: (k) => { mem.delete(k); },
-        clear: () => mem.clear(),
-        key: (i) => Array.from(mem.keys())[i] ?? null,
-        get length() { return mem.size; },
-      },
-    });
-  }
-})();
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-const { appId, token, functionsVersion, appBaseUrl } = appParams;
+// ---------------------------------------------------------------------------
+// Token storage helpers
+// ---------------------------------------------------------------------------
+export const tokenStorage = {
+  getAccessToken: () => localStorage.getItem('access_token'),
+  getRefreshToken: () => localStorage.getItem('refresh_token'),
+  setTokens: (accessToken, refreshToken) => {
+    localStorage.setItem('access_token', accessToken);
+    if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
+  },
+  clearTokens: () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  },
+};
 
-//Create a client with authentication required
-export const base44 = createClient({
-  appId,
-  token,
-  functionsVersion,
-  serverUrl: '',
-  requiresAuth: false,
-  appBaseUrl
+// ---------------------------------------------------------------------------
+// Axios instance
+// ---------------------------------------------------------------------------
+export const apiClient = axios.create({
+  baseURL: `${BASE_URL}/api/v1`,
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: false,
 });
+
+// ---------------------------------------------------------------------------
+// Request interceptor — attach Bearer token
+// ---------------------------------------------------------------------------
+apiClient.interceptors.request.use((config) => {
+  const token = tokenStorage.getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ---------------------------------------------------------------------------
+// Response interceptor — silent refresh on 401, force logout on replay
+// ---------------------------------------------------------------------------
+let isRefreshing = false;
+let pendingQueue = [];
+
+const processQueue = (error, token = null) => {
+  pendingQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token)));
+  pendingQueue = [];
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Replay-attack detected — force full logout immediately
+    if (error.response?.status === 403 && error.response?.data?.code === 'AUTH_REPLAY_DETECTED') {
+      tokenStorage.clearTokens();
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    // Silent refresh on 401 (only once per request)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const refreshToken = tokenStorage.getRefreshToken();
+      if (!refreshToken) {
+        tokenStorage.clearTokens();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          pendingQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { data } = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
+          refresh_token: refreshToken,
+        });
+
+        const { access_token, refresh_token: new_refresh_token } = data.data;
+        tokenStorage.setTokens(access_token, new_refresh_token);
+        processQueue(null, access_token);
+
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        tokenStorage.clearTokens();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Legacy export — keeps any remaining base44 import paths from crashing
+// (pages that still reference base44.entities will need their own migration)
+// ---------------------------------------------------------------------------
+export const base44 = {
+  auth: {
+    me: () => Promise.reject(new Error('base44.auth.me() is deprecated. Use AuthContext instead.')),
+  },
+};

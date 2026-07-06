@@ -9,201 +9,199 @@
  *   const members = await getWorkforceMembers(organisationId);
  */
 
-import { base44 } from "@/api/base44Client";
+import { apiClient } from "@/api/base44Client";
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 function requireOrg(organisationId) {
   if (!organisationId) throw new Error("organisationId is required for all data queries");
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const data = (res) => res.data?.data ?? res.data;
+
 // ─── Workforce Members ────────────────────────────────────────────────────────
 export async function getWorkforceMembers(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.WorkforceMember.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/workforce-members`, { params: { organisation_id: organisationId } }));
 }
 
 export async function getWorkforceMember(organisationId, id) {
   requireOrg(organisationId);
-  const record = await base44.entities.WorkforceMember.get(id);
+  const record = data(await apiClient.get(`/workforce-members/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
   return record;
 }
 
-export async function createWorkforceMember(organisationId, data) {
+export async function createWorkforceMember(organisationId, memberData) {
   requireOrg(organisationId);
-  return base44.entities.WorkforceMember.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/workforce-members`, { ...memberData, organisation_id: organisationId }));
 }
 
-export async function updateWorkforceMember(organisationId, id, data) {
+export async function updateWorkforceMember(organisationId, id, memberData) {
   requireOrg(organisationId);
-  const record = await base44.entities.WorkforceMember.get(id);
+  const record = data(await apiClient.get(`/workforce-members/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.WorkforceMember.update(id, data);
+  return data(await apiClient.patch(`/workforce-members/${id}`, memberData));
 }
 
 // ─── CPD Certificates ─────────────────────────────────────────────────────────
 export async function getCPDCertificates(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.CPDCertificate.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/cpd-certificates`, { params: { organisation_id: organisationId } }));
 }
 
 export async function getCPDCertificatesForUser(organisationId, userId) {
   requireOrg(organisationId);
-  return base44.entities.CPDCertificate.filter({ organisation_id: organisationId, user_id: userId });
+  return data(await apiClient.get(`/cpd-certificates`, { params: { organisation_id: organisationId, user_id: userId } }));
 }
 
-export async function createCPDCertificate(organisationId, data) {
+export async function createCPDCertificate(organisationId, certData) {
   requireOrg(organisationId);
-  return base44.entities.CPDCertificate.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/cpd-certificates`, { ...certData, organisation_id: organisationId }));
 }
 
-export async function updateCPDCertificate(organisationId, id, data) {
+export async function updateCPDCertificate(organisationId, id, certData) {
   requireOrg(organisationId);
-  const record = await base44.entities.CPDCertificate.get(id);
+  const record = data(await apiClient.get(`/cpd-certificates/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.CPDCertificate.update(id, data);
+  return data(await apiClient.patch(`/cpd-certificates/${id}`, certData));
 }
 
 export async function deleteCPDCertificate(organisationId, id) {
   requireOrg(organisationId);
-  const record = await base44.entities.CPDCertificate.get(id);
+  const record = data(await apiClient.get(`/cpd-certificates/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.CPDCertificate.delete(id);
+  return data(await apiClient.delete(`/cpd-certificates/${id}`));
 }
 
 // ─── Courses ──────────────────────────────────────────────────────────────────
 export async function getCourses(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.Course.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/courses`, { params: { organisation_id: organisationId } }));
 }
 
-export async function createCourse(organisationId, data) {
+export async function createCourse(organisationId, courseData) {
   requireOrg(organisationId);
-  return base44.entities.Course.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/courses`, { ...courseData, organisation_id: organisationId }));
 }
 
-export async function updateCourse(organisationId, id, data) {
+export async function updateCourse(organisationId, id, courseData) {
   requireOrg(organisationId);
-  const record = await base44.entities.Course.get(id);
+  const record = data(await apiClient.get(`/courses/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.Course.update(id, data);
+  return data(await apiClient.patch(`/courses/${id}`, courseData));
 }
 
 // ─── Course Enrolments ────────────────────────────────────────────────────────
 export async function getCourseEnrolments(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.CourseEnrolment.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/course-enrolments`, { params: { organisation_id: organisationId } }));
 }
 
 export async function getCourseEnrolmentsForUser(organisationId, userId) {
   requireOrg(organisationId);
-  return base44.entities.CourseEnrolment.filter({ organisation_id: organisationId, user_id: userId });
+  return data(await apiClient.get(`/course-enrolments`, { params: { organisation_id: organisationId, user_id: userId } }));
 }
 
-export async function createCourseEnrolment(organisationId, data) {
+export async function createCourseEnrolment(organisationId, enrolmentData) {
   requireOrg(organisationId);
-  return base44.entities.CourseEnrolment.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/course-enrolments`, { ...enrolmentData, organisation_id: organisationId }));
 }
 
-export async function updateCourseEnrolment(organisationId, id, data) {
+export async function updateCourseEnrolment(organisationId, id, enrolmentData) {
   requireOrg(organisationId);
-  const record = await base44.entities.CourseEnrolment.get(id);
+  const record = data(await apiClient.get(`/course-enrolments/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.CourseEnrolment.update(id, data);
+  return data(await apiClient.patch(`/course-enrolments/${id}`, enrolmentData));
 }
 
 // ─── Compliance Records ───────────────────────────────────────────────────────
 export async function getComplianceRecords(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.ComplianceRecord.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/compliance-records`, { params: { organisation_id: organisationId } }));
 }
 
-export async function createComplianceRecord(organisationId, data) {
+export async function createComplianceRecord(organisationId, recordData) {
   requireOrg(organisationId);
-  return base44.entities.ComplianceRecord.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/compliance-records`, { ...recordData, organisation_id: organisationId }));
 }
 
-export async function updateComplianceRecord(organisationId, id, data) {
+export async function updateComplianceRecord(organisationId, id, recordData) {
   requireOrg(organisationId);
-  const record = await base44.entities.ComplianceRecord.get(id);
+  const record = data(await apiClient.get(`/compliance-records/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.ComplianceRecord.update(id, data);
+  return data(await apiClient.patch(`/compliance-records/${id}`, recordData));
 }
 
 // ─── Foster Carers ────────────────────────────────────────────────────────────
 export async function getFosterCarers(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.FosterCarer.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/foster-carers`, { params: { organisation_id: organisationId } }));
 }
 
-export async function createFosterCarer(organisationId, data) {
+export async function createFosterCarer(organisationId, carerData) {
   requireOrg(organisationId);
-  return base44.entities.FosterCarer.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/foster-carers`, { ...carerData, organisation_id: organisationId }));
 }
 
-export async function updateFosterCarer(organisationId, id, data) {
+export async function updateFosterCarer(organisationId, id, carerData) {
   requireOrg(organisationId);
-  const record = await base44.entities.FosterCarer.get(id);
+  const record = data(await apiClient.get(`/foster-carers/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.FosterCarer.update(id, data);
+  return data(await apiClient.patch(`/foster-carers/${id}`, carerData));
 }
 
 // ─── Placements ───────────────────────────────────────────────────────────────
 export async function getPlacements(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.Placement.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/placements`, { params: { organisation_id: organisationId } }));
 }
 
-export async function createPlacement(organisationId, data) {
+export async function createPlacement(organisationId, placementData) {
   requireOrg(organisationId);
-  return base44.entities.Placement.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/placements`, { ...placementData, organisation_id: organisationId }));
 }
 
-export async function updatePlacement(organisationId, id, data) {
+export async function updatePlacement(organisationId, id, placementData) {
   requireOrg(organisationId);
-  const record = await base44.entities.Placement.get(id);
+  const record = data(await apiClient.get(`/placements/${id}`));
   if (record?.organisation_id !== organisationId) throw new Error("Access denied");
-  return base44.entities.Placement.update(id, data);
+  return data(await apiClient.patch(`/placements/${id}`, placementData));
 }
 
 // ─── Recruitment Leads ────────────────────────────────────────────────────────
 export async function getRecruitmentLeads(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.RecruitmentLead.filter({ organisation_id: organisationId });
+  return data(await apiClient.get(`/recruitment-leads`, { params: { organisation_id: organisationId } }));
 }
 
-export async function createRecruitmentLead(organisationId, data) {
+export async function createRecruitmentLead(organisationId, leadData) {
   requireOrg(organisationId);
-  return base44.entities.RecruitmentLead.create({ ...data, organisation_id: organisationId });
+  return data(await apiClient.post(`/recruitment-leads`, { ...leadData, organisation_id: organisationId }));
 }
 
 // ─── Organisation ─────────────────────────────────────────────────────────────
 export async function getOrganisation(organisationId) {
   requireOrg(organisationId);
-  return base44.entities.Organisation.get(organisationId);
+  return data(await apiClient.get(`/organisations/${organisationId}`));
 }
 
-export async function updateOrganisation(organisationId, data) {
+export async function updateOrganisation(organisationId, orgData) {
   requireOrg(organisationId);
-  return base44.entities.Organisation.update(organisationId, data);
+  return data(await apiClient.patch(`/organisations/${organisationId}`, orgData));
 }
 
 // ─── Derived / Aggregate Metrics ─────────────────────────────────────────────
 export async function getAgencyMetrics(organisationId) {
   requireOrg(organisationId);
-  const [members, certs, alerts] = await Promise.all([
-    getWorkforceMembers(organisationId),
-    getCPDCertificates(organisationId),
-    // Alerts don't have their own entity yet — return empty until one is created
-    Promise.resolve([]),
+  const [members, certs] = await Promise.all([
+    getWorkforceMembers(organisationId).catch(() => []),
+    getCPDCertificates(organisationId).catch(() => []),
   ]);
-  const total = members.length;
-  const fullyCompliant = 0; // Derive from ComplianceRecord when wired
-  const highRisk = 0;
-  const expiring = certs.filter(c => c.status === "expiring_soon").length;
-  const expired = certs.filter(c => c.status === "expired").length;
-  const totalCpdHours = certs.reduce((s, c) => s + (c.cpd_hours || 0), 0);
-  const avgCompliance = 0;
-  const unreadAlerts = 0;
-  return { total, fullyCompliant, highRisk, expiring, expired, totalCpdHours, avgCompliance, unreadAlerts };
+  const total = Array.isArray(members) ? members.length : 0;
+  const certList = Array.isArray(certs) ? certs : [];
+  const expiring = certList.filter(c => c.status === "expiring_soon").length;
+  const expired = certList.filter(c => c.status === "expired").length;
+  const totalCpdHours = certList.reduce((s, c) => s + (c.cpd_hours || 0), 0);
+  return { total, fullyCompliant: 0, highRisk: 0, expiring, expired, totalCpdHours, avgCompliance: 0, unreadAlerts: 0 };
 }

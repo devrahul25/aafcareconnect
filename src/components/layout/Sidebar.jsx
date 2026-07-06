@@ -4,7 +4,7 @@ import {
   FileText, Shield, Users, Briefcase, Home, Bot, BarChart3,
   Settings, ChevronLeft, ChevronRight, LogOut, Lock
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 
 const PHASE1 = [
   { icon: LayoutDashboard, label: "Dashboard",         path: "/dashboard"        },
@@ -26,6 +26,7 @@ const COMING_SOON = [
 
 export default function Sidebar({ user, collapsed, setCollapsed }) {
   const location = useLocation();
+  const { logout } = useAuth();
   return (
     <aside className={`sidebar flex flex-col h-screen sticky top-0 flex-shrink-0 transition-all duration-200 ${collapsed ? "w-[60px]" : "w-[220px]"} z-30`}>
       {/* Logo */}
@@ -83,7 +84,7 @@ export default function Sidebar({ user, collapsed, setCollapsed }) {
 
       {/* Sign out */}
       <div className="border-t border-white/5 px-2 py-2">
-        <button onClick={() => base44.auth.logout("/")} title={collapsed ? "Sign Out" : undefined}
+        <button onClick={() => logout()} title={collapsed ? "Sign Out" : undefined}
           className="sidebar-item flex items-center w-full h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium">
           <LogOut size={16} className="flex-shrink-0" />
           {!collapsed && <span>Sign Out</span>}

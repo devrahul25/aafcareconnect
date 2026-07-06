@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { COURSE, ASSESSMENT_QUESTIONS } from "@/lib/courseData";
 import CourseSidebar from "@/components/course/CourseSidebar";
 import CourseTopBar from "@/components/course/CourseTopBar";
@@ -6,13 +6,11 @@ import LessonContent from "@/components/course/LessonContent";
 import CardAssessment from "@/components/course/CardAssessment";
 import CertificateScreen from "@/components/course/CertificateScreen";
 import LearningPanel from "@/components/course/LearningPanel";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import { apiClient } from "@/api/base44Client";
 
 export default function CoursePlayer() {
-  const [user, setUser] = useState(null);
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
+  const { user } = useAuth();
   const learnerName = user?.full_name || "Foster Carer";
 
   const allLessons = useMemo(
@@ -81,9 +79,9 @@ export default function CoursePlayer() {
     setCompletedLessons(new Set(allLessons.map((l) => l.id)));
     setPassedCourse(true);
     try {
-      await base44.entities.CPDCertificate.create({
+      await apiClient.post('/cpd-certificates', {
         user_id: user?.id,
-        organisation_id: user?.organisation_id,
+        organisation_id: user?.organization_id,
         title: COURSE.title,
         provider: "AAF CareConnect",
         issue_date: new Date().toISOString().slice(0, 10),

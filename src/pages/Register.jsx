@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,74 +7,115 @@ import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import { toast } from "@/components/ui/use-toast";
+import { authApi } from "@/api/authApi";
+import { firebaseSignInWithGoogle } from "@/lib/firebase";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Register() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
+  const [email, setEmail]                     = useState("");
+  const [password, setPassword]               = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError]                     = useState("");
+  const [loading, setLoading]                 = useState(false);
+  const [googleLoading, setGoogleLoading]     = useState(false);
+  const [showOtp, setShowOtp]                 = useState(false);
+  const [otpCode, setOtpCode]                 = useState("");
+
+  const validatePassword = (pw) => {
+    if (pw.length < 8) return "Password must be at least 8 characters.";
+    if (!/[A-Z]/.test(pw)) return "Password must contain at least one uppercase letter.";
+    if (!/[0-9]/.test(pw)) return "Password must contain at least one number.";
+    if (!/[\W_]/.test(pw)) return "Password must contain at least one special character (e.g. !@#$).";
+    return null;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Step 1 — Register
+  // ---------------------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
+      return;
+    }
+    const pwError = validatePassword(password);
+    if (pwError) {
+      setError(pwError);
       return;
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
+      await authApi.register(email, password);
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.response?.data?.error || err.message || "Registration failed.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Step 2 — Verify OTP
+  // ---------------------------------------------------------------------------
   const handleVerify = async () => {
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
-      }
-      window.location.href = "/";
+      const result = await authApi.verifyOtp(email, otpCode);
+      const { access_token, refresh_token, user } = result.data;
+      login(access_token, refresh_token, user);
+      navigate("/", { replace: true });
     } catch (err) {
-      setError(err.message || "Invalid verification code");
+      setError(err.response?.data?.error || err.message || "Invalid verification code.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Resend OTP
+  // ---------------------------------------------------------------------------
   const handleResend = async () => {
     setError("");
     try {
-      await base44.auth.resendOtp(email);
-      toast({
-        title: "Code sent",
-        description: "Check your email for the new code.",
-      });
+      await authApi.resendOtp(email);
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      setError(err.response?.data?.error || err.message || "Failed to resend code.");
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
+  // ---------------------------------------------------------------------------
+  // Google sign-up
+  // ---------------------------------------------------------------------------
+  const handleGoogle = async () => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const idToken = await firebaseSignInWithGoogle();
+      const result = await authApi.socialLogin(idToken);
+      const { access_token, refresh_token, user } = result.data;
+      login(access_token, refresh_token, user);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Google sign-up failed.");
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
+  // ---------------------------------------------------------------------------
+  // OTP Screen
+  // ---------------------------------------------------------------------------
   if (showOtp) {
     return (
       <AuthLayout
         icon={Mail}
         title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        subtitle={`We sent a 6-digit code to ${email}`}
       >
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -124,6 +164,9 @@ export default function Register() {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Registration Screen
+  // ---------------------------------------------------------------------------
   return (
     <AuthLayout
       icon={UserPlus}
@@ -142,8 +185,13 @@ export default function Register() {
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
+        disabled={googleLoading || loading}
       >
-        <GoogleIcon className="w-5 h-5 mr-2" />
+        {googleLoading ? (
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        ) : (
+          <GoogleIcon className="w-5 h-5 mr-2" />
+        )}
         Continue with Google
       </Button>
 
@@ -188,7 +236,7 @@ export default function Register() {
               id="password"
               type="password"
               autoComplete="new-password"
-              placeholder="••••••••"
+              placeholder="Min 8 chars, uppercase, number, symbol"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10 h-12"
@@ -212,7 +260,7 @@ export default function Register() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <Button type="submit" className="w-full h-12 font-medium" disabled={loading || googleLoading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

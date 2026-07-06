@@ -1,35 +1,65 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import { firebaseSignIn, firebaseSignInWithGoogle } from "@/lib/firebase";
+import { authApi } from "@/api/authApi";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
+  const [email, setEmail]     = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  // ---------------------------------------------------------------------------
+  // Email + Password login
+  // ---------------------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = "/";
+      // Step 1: Sign in to Firebase to get an ID token
+      const idToken = await firebaseSignIn(email, password);
+      // Step 2: Exchange the Firebase ID token for our app's JWT
+      const result = await authApi.login(idToken);
+      const { access_token, refresh_token, user } = result.data;
+      // Step 3: Store tokens and update auth state
+      login(access_token, refresh_token, user);
+      navigate("/", { replace: true });
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      setError(err.response?.data?.error || err.message || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
+  // ---------------------------------------------------------------------------
+  // Google login
+  // ---------------------------------------------------------------------------
+  const handleGoogle = async () => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const idToken = await firebaseSignInWithGoogle();
+      const result = await authApi.socialLogin(idToken);
+      const { access_token, refresh_token, user } = result.data;
+      login(access_token, refresh_token, user);
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Google sign-in failed.");
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -50,8 +80,13 @@ export default function Login() {
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
+        disabled={googleLoading || loading}
       >
-        <GoogleIcon className="w-5 h-5 mr-2" />
+        {googleLoading ? (
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        ) : (
+          <GoogleIcon className="w-5 h-5 mr-2" />
+        )}
         Continue with Google
       </Button>
 
@@ -109,7 +144,7 @@ export default function Login() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <Button type="submit" className="w-full h-12 font-medium" disabled={loading || googleLoading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
