@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "dev": "concurrently -c \"cyan.bold,blue.bold\" -n \"CLIENT,SERVER\" -k \"npm run dev:client\" \"npm run dev:server\"",
     "dev:both": "concurrently -c \"cyan.bold,blue.bold\" -n \"CLIENT,SERVER\" -k \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "vite",
     "dev:server": "npm run dev --prefix server",
