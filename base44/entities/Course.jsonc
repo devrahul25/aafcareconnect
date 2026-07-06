@@ -1,0 +1,79 @@
+{
+  "name": "Course",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Safeguarding",
+        "First Aid",
+        "Therapeutic Parenting",
+        "Attachment",
+        "Diversity & Inclusion",
+        "Health & Safety",
+        "Legislation",
+        "Caring Skills",
+        "Other"
+      ]
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "Foundation",
+        "Intermediate",
+        "Advanced"
+      ]
+    },
+    "duration_minutes": {
+      "type": "number"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "pdf_url": {
+      "type": "string"
+    },
+    "pass_mark": {
+      "type": "number"
+    },
+    "certificate_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "organisation_id": {
+      "type": "string"
+    },
+    "mandatory": {
+      "type": "boolean",
+      "default": false
+    },
+    "target_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}

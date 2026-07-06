@@ -1,0 +1,64 @@
+{
+  "name": "Placement",
+  "type": "object",
+  "properties": {
+    "child_name": {
+      "type": "string"
+    },
+    "child_dob": {
+      "type": "string",
+      "format": "date"
+    },
+    "organisation_id": {
+      "type": "string"
+    },
+    "carer_id": {
+      "type": "string"
+    },
+    "ssw_id": {
+      "type": "string"
+    },
+    "referral_source": {
+      "type": "string"
+    },
+    "placement_start": {
+      "type": "string",
+      "format": "date"
+    },
+    "placement_end": {
+      "type": "string",
+      "format": "date"
+    },
+    "placement_type": {
+      "type": "string",
+      "enum": [
+        "emergency",
+        "short_term",
+        "long_term",
+        "respite",
+        "parent_child"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "referral",
+        "matching",
+        "active",
+        "ended",
+        "breakdown"
+      ],
+      "default": "referral"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "needs_description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "child_name",
+    "placement_type"
+  ]
+}

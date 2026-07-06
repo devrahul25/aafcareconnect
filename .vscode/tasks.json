@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "dev:server",
+      "problemMatcher": [],
+      "label": "npm: dev:server",
+      "detail": "Start the backend server in dev mode",
+      "isBackground": true
+    },
+    {
+      "type": "npm",
+      "script": "dev:client",
+      "problemMatcher": [],
+      "label": "npm: dev:client",
+      "detail": "Start the frontend client in dev mode",
+      "isBackground": true
+    }
+  ]
+}

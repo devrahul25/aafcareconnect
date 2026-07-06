@@ -1,0 +1,47 @@
+{
+  "name": "CourseEnrolment",
+  "type": "object",
+  "properties": {
+    "course_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "organisation_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "enrolled",
+        "in_progress",
+        "completed",
+        "failed"
+      ],
+      "default": "enrolled"
+    },
+    "progress_percent": {
+      "type": "number",
+      "default": 0
+    },
+    "score": {
+      "type": "number"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "certificate_url": {
+      "type": "string"
+    },
+    "enrolled_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "course_id",
+    "user_id"
+  ]
+}

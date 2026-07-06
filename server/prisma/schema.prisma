@@ -1,0 +1,458 @@
+// AAF CareConnect™ — PostgreSQL Schema
+// Foundation models only.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum OrganizationType {
+  INDEPENDENT_FOSTERING_AGENCY
+  LOCAL_AUTHORITY
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  EMAIL_CHANGE
+  PHONE_VERIFICATION
+}
+
+enum AuditEventType {
+  ACCOUNT_CREATED
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  OTP_SENT
+  OTP_VERIFIED
+  PASSWORD_RESET_REQUEST
+  PASSWORD_CHANGED
+  EMAIL_VERIFIED
+  SOCIAL_LOGIN
+  ACCOUNT_LOCKED
+  LOGOUT
+  LOGOUT_ALL
+  SESSION_CREATED
+  SESSION_REFRESHED
+  SESSION_REVOKED
+  SESSION_ROTATED
+  SESSION_EXPIRED
+  TOKEN_REUSE_DETECTED
+}
+
+enum SessionPlatform {
+  WEB
+  IOS
+  ANDROID
+  UNKNOWN
+}
+
+enum SessionRevokedReason {
+  ROTATED
+  LOGOUT
+  LOGOUT_ALL
+  REUSE_DETECTED
+  ADMIN_REVOKED
+  EXPIRED
+}
+
+enum CourseLevel {
+  FOUNDATION
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SectionType {
+  VIDEO
+  DOCUMENT
+  RICH_TEXT
+  QUIZ
+}
+
+// ─── ORGANIZATIONS ────────────────────────────────────────────────────────────
+
+model Organization {
+  id              String             @id @default(uuid())
+  name            String
+  type            OrganizationType
+  logo_url        String?
+  address         String?
+  phone           String?
+  email           String?
+  website         String?
+  ofsted_number   String?
+  enabled_modules String[]           @default([])
+  status          OrganizationStatus @default(TRIAL)
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+  deleted_at      DateTime?
+
+  users      User[]
+  roles      Role[]
+  courses    Course[]
+  audit_logs AuditLog[]
+
+  @@map("organizations")
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+
+model User {
+  id              String     @id @default(uuid())
+  firebase_uid    String     @unique
+  email           String     @unique
+  full_name       String?
+  phone           String?
+  avatar_url      String?
+  organization_id String
+  status          UserStatus @default(ACTIVE)
+  session_version Int        @default(1)
+  last_login_at   DateTime?
+  email_verified  Boolean    @default(false)
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+  deleted_at      DateTime?
+
+  organization        Organization        @relation(fields: [organization_id], references: [id], onDelete: Restrict)
+  user_roles          UserRole[]
+  user_permissions    UserPermission[]
+  verification_tokens VerificationToken[]
+  user_sessions       UserSession[]
+  audit_logs          AuditLog[]
+
+  @@index([organization_id])
+  @@index([organization_id, status])
+  @@index([organization_id, created_at(sort: Desc)])
+  @@map("users")
+}
+
+// ─── ROLES & PERMISSIONS ──────────────────────────────────────────────────────
+
+model Role {
+  id              String   @id @default(uuid())
+  organization_id String
+  name            String
+  description     String?
+  is_system       Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  user_roles   UserRole[]
+  permissions  RolePermission[]
+
+  @@unique([organization_id, name])
+  @@index([organization_id])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String // e.g. "courses", "compliance_records", "users"
+  action      String // e.g. "create", "read", "update", "delete", "manage"
+  description String?
+  created_at  DateTime @default(now())
+
+  role_permissions RolePermission[]
+  user_permissions UserPermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  role_id       String
+  permission_id String
+
+  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@id([role_id, permission_id])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  user_id String
+  role_id String
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, role_id])
+  @@map("user_roles")
+}
+
+model UserPermission {
+  user_id       String
+  permission_id String
+
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, permission_id])
+  @@map("user_permissions")
+}
+
+// ─── COURSES ──────────────────────────────────────────────────────────────────
+
+model Course {
+  id                  String       @id @default(uuid())
+  organization_id     String
+  title               String
+  description         String?
+  category            String
+  level               CourseLevel  @default(FOUNDATION)
+  duration_minutes    Int?
+  thumbnail_url       String?
+  pass_mark           Int?
+  certificate_enabled Boolean      @default(true)
+  status              CourseStatus @default(DRAFT)
+  mandatory           Boolean      @default(false)
+  target_roles        String[]     @default([])
+  sort_order          Int          @default(0)
+  created_at          DateTime     @default(now())
+  updated_at          DateTime     @updatedAt
+  deleted_at          DateTime?
+  created_by          String?
+  updated_by          String?
+
+  organization Organization    @relation(fields: [organization_id], references: [id], onDelete: Restrict)
+  sections     CourseSection[]
+
+  @@index([organization_id])
+  @@index([organization_id, status])
+  @@index([organization_id, category])
+  @@map("courses")
+}
+
+// ─── COURSE SECTIONS (ordered lessons) ────────────────────────────────────────
+
+model CourseSection {
+  id              String      @id @default(uuid())
+  organization_id String
+  course_id       String
+  title           String
+  type            SectionType
+  sort_order      Int         @default(0)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  course            Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  videos            Video[]
+  documents         Document[]
+  rich_text_lessons RichTextLesson[]
+  quizzes           Quiz[]
+
+  @@index([organization_id])
+  @@index([course_id])
+  @@index([course_id, sort_order])
+  @@map("course_sections")
+}
+
+// ─── VIDEOS ───────────────────────────────────────────────────────────────────
+
+model Video {
+  id              String   @id @default(uuid())
+  organization_id String
+  section_id      String
+  title           String
+  s3_key          String
+  cloudfront_url  String?
+  duration_secs   Int?
+  thumbnail_url   String?
+  transcript      String?
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  section CourseSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([section_id])
+  @@map("videos")
+}
+
+// ─── DOCUMENTS ────────────────────────────────────────────────────────────────
+
+model Document {
+  id              String   @id @default(uuid())
+  organization_id String
+  section_id      String
+  title           String
+  s3_key          String
+  file_type       String // PDF, DOCX, etc.
+  file_size       Int?
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  section CourseSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([section_id])
+  @@map("documents")
+}
+
+// ─── RICH TEXT LESSONS ────────────────────────────────────────────────────────
+
+model RichTextLesson {
+  id              String   @id @default(uuid())
+  organization_id String
+  section_id      String
+  title           String
+  content         Json // HTML or structured JSON content
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  section CourseSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([section_id])
+  @@map("rich_text_lessons")
+}
+
+// ─── QUIZZES ──────────────────────────────────────────────────────────────────
+
+model Quiz {
+  id              String   @id @default(uuid())
+  organization_id String
+  section_id      String
+  title           String
+  pass_mark       Int      @default(80)
+  time_limit      Int? // minutes
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  section   CourseSection  @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+
+  @@index([organization_id])
+  @@index([section_id])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id              String   @id @default(uuid())
+  organization_id String
+  quiz_id         String
+  question        String
+  explanation     String?
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  quiz    Quiz         @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  answers QuizAnswer[]
+
+  @@index([organization_id])
+  @@index([quiz_id])
+  @@map("quiz_questions")
+}
+
+model QuizAnswer {
+  id              String  @id @default(uuid())
+  organization_id String
+  question_id     String
+  text            String
+  is_correct      Boolean @default(false)
+  sort_order      Int     @default(0)
+
+  question QuizQuestion @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([question_id])
+  @@map("quiz_answers")
+}
+
+// ─── AUTHENTICATION & SECURITY ────────────────────────────────────────────────
+
+model VerificationToken {
+  id           String                @id @default(uuid())
+  user_id      String?
+  email        String
+  type         VerificationTokenType
+  hashed_token String
+  expires_at   DateTime
+  attempts     Int                   @default(0)
+  consumed_at  DateTime?
+  created_at   DateTime              @default(now())
+  ip_address   String?
+  user_agent   String?
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([email, type])
+  @@index([expires_at])
+  @@map("verification_tokens")
+}
+
+model UserSession {
+  id                 String               @id @default(uuid())
+  user_id            String
+  family_id          String               // Ties rotated sessions together
+  parent_session_id  String?              // Previous session in the chain
+  refresh_token_hash String               @unique
+  platform           SessionPlatform      @default(WEB)
+  device_name        String?
+  browser            String?
+  operating_system   String?
+  ip_address         String?
+  country            String?
+  city               String?
+  created_at         DateTime             @default(now())
+  last_used_at       DateTime             @default(now())
+  last_seen_at       DateTime             @default(now())
+  expires_at         DateTime
+  revoked_at         DateTime?
+  revoked_reason     SessionRevokedReason?
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("user_sessions")
+}
+
+model AuditLog {
+  id              String         @id @default(uuid())
+  organization_id String?
+  user_id         String?
+  event_type      AuditEventType
+  description     String?
+  ip_address      String?
+  user_agent      String?
+  metadata        Json?
+  created_at      DateTime       @default(now())
+
+  organization Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@index([user_id])
+  @@index([event_type])
+  @@map("audit_logs")
+}

@@ -1,0 +1,44 @@
+{
+  "name": "PartnerEnquiry",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "organisation": {
+      "type": "string"
+    },
+    "partnership_type": {
+      "type": "string",
+      "enum": [
+        "Technology Partner",
+        "Training Provider",
+        "Consultant",
+        "Referral Partner",
+        "Other"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "in_review",
+        "approved",
+        "declined"
+      ],
+      "default": "new"
+    }
+  },
+  "required": [
+    "full_name",
+    "email",
+    "organisation",
+    "partnership_type"
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "name": "WorkforceMember",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "organisation_id": {
+      "type": "string"
+    },
+    "role_type": {
+      "type": "string",
+      "enum": [
+        "supervising_social_worker",
+        "independent_assessor",
+        "panel_member",
+        "trainer",
+        "manager",
+        "administrator"
+      ]
+    },
+    "employment_type": {
+      "type": "string",
+      "enum": [
+        "employed",
+        "self_employed",
+        "contractor"
+      ]
+    },
+    "dbs_number": {
+      "type": "string"
+    },
+    "dbs_expiry": {
+      "type": "string",
+      "format": "date"
+    },
+    "contract_url": {
+      "type": "string"
+    },
+    "availability": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "on_leave"
+      ],
+      "default": "active"
+    },
+    "caseload_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "full_name",
+    "email",
+    "role_type"
+  ]
+}

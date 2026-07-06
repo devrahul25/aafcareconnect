@@ -1,0 +1,222 @@
+openapi: 3.0.0
+info:
+  title: CareConnect API
+  version: 1.0.0
+  description: Authentication and Authorization endpoints for AAF CareConnect.
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local Development
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                full_name:
+                  type: string
+      responses:
+        '200':
+          description: Registration pending. OTP sent.
+        '400':
+          description: Validation error
+        '409':
+          description: Email already in use
+
+  /auth/verify-otp:
+    post:
+      summary: Verify OTP
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - otpCode
+              properties:
+                email:
+                  type: string
+                  format: email
+                otpCode:
+                  type: string
+      responses:
+        '200':
+          description: Successfully verified, returns tokens.
+        '400':
+          description: Invalid OTP or expired.
+
+  /auth/login:
+    post:
+      summary: Login via Firebase ID Token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idToken
+              properties:
+                idToken:
+                  type: string
+      responses:
+        '200':
+          description: Successfully logged in, returns tokens.
+        '401':
+          description: Invalid ID Token
+        '403':
+          description: Account suspended or pending
+
+  /auth/refresh:
+    post:
+      summary: Refresh Access Token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: New token pair returned
+        '401':
+          description: Invalid refresh token
+        '403':
+          description: Replay detected or session expired
+
+  /auth/logout:
+    post:
+      summary: Logout of current session
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /auth/logout-all:
+    post:
+      summary: Logout of all sessions
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All sessions logged out
+        '401':
+          description: Unauthorized
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset OTP
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: OTP sent (if email exists)
+
+  /auth/reset-password:
+    post:
+      summary: Reset password using OTP
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - code
+                - newPassword
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        '200':
+          description: Password reset successfully
+
+  /auth/social-login:
+    post:
+      summary: Social login via Firebase ID Token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idToken
+              properties:
+                idToken:
+                  type: string
+      responses:
+        '200':
+          description: Social login successful
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

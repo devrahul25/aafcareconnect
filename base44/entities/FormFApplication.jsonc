@@ -1,0 +1,74 @@
+{
+  "name": "FormFApplication",
+  "type": "object",
+  "properties": {
+    "applicant_name": {
+      "type": "string"
+    },
+    "applicant_email": {
+      "type": "string"
+    },
+    "organisation_id": {
+      "type": "string"
+    },
+    "assessor_id": {
+      "type": "string"
+    },
+    "ssw_id": {
+      "type": "string"
+    },
+    "current_stage": {
+      "type": "string",
+      "enum": [
+        "initial_enquiry",
+        "stage_1",
+        "stage_2",
+        "medicals",
+        "references",
+        "chronology",
+        "panel_recommendation",
+        "approval",
+        "annual_review"
+      ],
+      "default": "initial_enquiry"
+    },
+    "stage_statuses": {
+      "type": "object"
+    },
+    "enquiry_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "panel_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "approval_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "deferred",
+        "not_approved"
+      ],
+      "default": "pending"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "applicant_name",
+    "applicant_email"
+  ]
+}

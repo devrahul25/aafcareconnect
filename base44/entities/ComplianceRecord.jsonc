@@ -1,0 +1,77 @@
+{
+  "name": "ComplianceRecord",
+  "type": "object",
+  "properties": {
+    "organisation_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "allegation",
+        "complaint",
+        "safer_caring",
+        "missing_from_care",
+        "reg_44",
+        "audit",
+        "policy"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "assigned_to_id": {
+      "type": "string"
+    },
+    "carer_id": {
+      "type": "string"
+    },
+    "child_name": {
+      "type": "string"
+    },
+    "incident_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "under_review",
+        "resolved",
+        "closed"
+      ],
+      "default": "open"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium"
+    },
+    "outcome": {
+      "type": "string"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "type",
+    "title"
+  ]
+}
