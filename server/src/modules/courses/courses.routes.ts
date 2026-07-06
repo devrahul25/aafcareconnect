@@ -11,6 +11,11 @@ const router = Router();
 // Apply common middlewares to all course routes
 router.use(requireAuth, tenantContext);
 
+// --- Category Routes (MUST be before /:id to avoid collision) ---
+router.get('/categories', requirePermission('courses', 'read'), controller.listCategories);
+router.patch('/categories/rename', requirePermission('courses', 'update'), validate(validator.renameCategorySchema), controller.renameCategoryHandler);
+router.delete('/categories/:name', requirePermission('courses', 'delete'), controller.deleteCategoryHandler);
+
 // --- Course Routes ---
 router.get('/', requirePermission('courses', 'read'), controller.listCourses);
 router.get('/:id', requirePermission('courses', 'read'), controller.getCourse);

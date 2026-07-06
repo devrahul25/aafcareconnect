@@ -193,6 +193,32 @@ export class CoursesRepository {
   async deleteQuizAnswer(organizationId: string, id: string) {
     return prisma.quizAnswer.delete({ where: { id, organization_id: organizationId } });
   }
+
+  // ─── Categories ────────────────────────────────────────────────────────────
+
+  async findDistinctCategories(organizationId: string): Promise<string[]> {
+    const rows = await prisma.course.findMany({
+      where: { organization_id: organizationId, deleted_at: null },
+      distinct: ['category'],
+      select: { category: true },
+      orderBy: { category: 'asc' },
+    });
+    return rows.map((r) => r.category).filter(Boolean);
+  }
+
+  async getCourseCountByCategory(organizationId: string, category: string): Promise<number> {
+    return prisma.course.count({
+      where: { organization_id: organizationId, category, deleted_at: null },
+    });
+  }
+
+  async renameCategory(organizationId: string, oldName: string, newName: string): Promise<number> {
+    const result = await prisma.course.updateMany({
+      where: { organization_id: organizationId, category: oldName },
+      data: { category: newName },
+    });
+    return result.count;
+  }
 }
 
 export const coursesRepository = new CoursesRepository();

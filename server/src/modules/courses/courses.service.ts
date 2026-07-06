@@ -172,6 +172,55 @@ export class CoursesService {
       throw new AppError('Section not found in this course', 404, 'NOT_FOUND');
     }
   }
+
+  // ─── Category Management ────────────────────────────────────────────────────
+
+  /** Default categories shown when no courses exist yet */
+  private readonly DEFAULT_CATEGORIES = [
+    'Safeguarding',
+    'Therapeutic Parenting',
+    'Attachment',
+    'Health & Safety',
+    'Legislation',
+    'Equality & Diversity',
+    'Child Development',
+    'First Aid',
+    'General',
+  ];
+
+  async getCategories(organizationId: string): Promise<string[]> {
+    const dbCategories = await coursesRepository.findDistinctCategories(organizationId);
+    if (dbCategories.length === 0) {
+      return this.DEFAULT_CATEGORIES;
+    }
+    // Merge: DB values first, then any defaults not already present
+    const merged = [...new Set([...dbCategories, ...this.DEFAULT_CATEGORIES])];
+    return merged.sort();
+  }
+
+  async renameCategory(organizationId: string, oldName: string, newName: string) {
+    if (!oldName || !newName) {
+      throw new AppError('Old name and new name are required', 400, 'VALIDATION_ERROR');
+    }
+    if (oldName === newName) {
+      throw new AppError('New name must differ from old name', 400, 'VALIDATION_ERROR');
+    }
+    const count = await coursesRepository.renameCategory(organizationId, oldName, newName);
+    return { renamed: count, old_name: oldName, new_name: newName };
+  }
+
+  async deleteCategory(organizationId: string, categoryName: string) {
+    const courseCount = await coursesRepository.getCourseCountByCategory(organizationId, categoryName);
+    if (courseCount > 0) {
+      throw new AppError(
+        `Cannot delete "${categoryName}" — ${courseCount} course${courseCount > 1 ? 's are' : ' is'} still assigned to it. Reassign them first.`,
+        409,
+        'CATEGORY_IN_USE'
+      );
+    }
+    // Category has no courses — it only existed in the pre-seeded list; nothing to delete from DB
+    return { deleted: categoryName };
+  }
 }
 
 export const coursesService = new CoursesService();
