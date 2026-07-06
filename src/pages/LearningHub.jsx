@@ -22,6 +22,7 @@ import ScenarioPractice from "@/components/learner/ScenarioPractice";
 import { BADGES, LEARNER_GAMIFICATION, CURRENT_PROGRESS } from "@/lib/gamification";
 import { BADGE_BG } from "@/components/gamification/badgeStyles";
 import { getCourses, getCourseEnrolments, getWorkforceMembers } from "@/lib/orgData";
+import { apiClient } from "@/api/base44Client";
 
 // ─── Demo catalogue (shown when no organisationId) ────────────────────────────
 const DEMO_COURSES = [
@@ -47,7 +48,7 @@ const DEMO_LEARNERS = [
 const STATUS_LEARNER = { compliant: "badge-green", in_progress: "badge-blue", at_risk: "badge-amber", non_compliant: "badge-red" };
 const STATUS_LABEL   = { compliant: "Compliant", in_progress: "In Progress", at_risk: "At Risk", non_compliant: "Non-Compliant" };
 const LEVEL_CLS      = { Foundation: "bg-emerald-50 text-emerald-700", Intermediate: "bg-amber-50 text-amber-700", Advanced: "bg-red-50 text-red-700" };
-const CATS = ["All", "Safeguarding", "Therapeutic Parenting", "Attachment", "Health & Safety", "Legislation", "Equality & Diversity"];
+const DEMO_CATS = ["All", "Safeguarding", "Therapeutic Parenting", "Attachment", "Health & Safety", "Legislation", "Equality & Diversity"];
 
 // Normalise a Course entity record to the display shape
 function normaliseCourse(c, idx) {
@@ -80,17 +81,23 @@ export default function LearningHub() {
   const [learners,     setLearners]     = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [isDemo,       setIsDemo]       = useState(false);
+  const [cats,         setCats]         = useState(DEMO_CATS);
 
   useEffect(() => {
     if (!organisationId) {
       setCourses(DEMO_COURSES);
       setLearners(DEMO_LEARNERS);
+      setCats(DEMO_CATS);
       setIsDemo(true);
       setLoading(false);
       return;
     }
-    Promise.all([getCourses(organisationId), getWorkforceMembers(organisationId)])
-      .then(([rawCourses, members]) => {
+    Promise.all([
+      getCourses(organisationId),
+      getWorkforceMembers(organisationId),
+      apiClient.get("/courses/categories").then(r => r.data.data || r.data || []).catch(() => []),
+    ])
+      .then(([rawCourses, members, apiCats]) => {
         setCourses(rawCourses.length > 0 ? rawCourses.map(normaliseCourse) : DEMO_COURSES);
         setLearners(members.length > 0 ? members.map((m, i) => ({
           id: m.id || i,
@@ -101,11 +108,16 @@ export default function LearningHub() {
           avatar: m.full_name?.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() || "??",
           color: "bg-blue-600",
         })) : DEMO_LEARNERS);
+        // Set category pills — merge API cats with "All" prefix
+        if (apiCats.length > 0) {
+          setCats(["All", ...apiCats]);
+        }
         setIsDemo(rawCourses.length === 0 && members.length === 0);
       })
       .catch(() => {
         setCourses(DEMO_COURSES);
         setLearners(DEMO_LEARNERS);
+        setCats(DEMO_CATS);
         setIsDemo(true);
       })
       .finally(() => setLoading(false));
@@ -202,7 +214,7 @@ export default function LearningHub() {
       {tab === "catalogue" && (
         <div className="space-y-5 animate-fade-in">
           <div className="flex gap-2 flex-wrap -mt-2">
-            {CATS.map(c => (
+            {cats.map(c => (
               <button key={c} onClick={() => setCategory(c)}
                 className={`h-7 px-3 text-xs font-medium rounded-full transition-all ${category === c ? "bg-slate-900 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-slate-400"}`}>
                 {c}

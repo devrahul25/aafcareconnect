@@ -4,7 +4,8 @@ import {
   PenTool, Plus, Play, FileText, HelpCircle, Settings,
   CheckCircle2, Trash2, GripVertical, X, Upload,
   Eye, Save, Users, Clock, Award, ArrowRight, ChevronRight,
-  Zap, BarChart3, Edit3, Lock, AlertTriangle, Star
+  Zap, BarChart3, Edit3, Lock, AlertTriangle, Star,
+  Tag, FolderOpen, RefreshCw, Pencil, ChevronDown
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -33,6 +34,293 @@ const LEVEL_CLS = {
   INTERMEDIATE: "bg-amber-50 text-amber-700",
   ADVANCED: "bg-red-50 text-red-700"
 };
+
+// ─── Category Manager Modal ───────────────────────────────────────────────────
+function CategoryManagerModal({ categories, onClose, onSaved }) {
+  const [list, setList]             = useState(categories || []);
+  const [newName, setNewName]       = useState("");
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editName, setEditName]     = useState("");
+  const [courseCounts, setCourseCounts] = useState({});
+  const [saving, setSaving]         = useState(false);
+  const [deleting, setDeleting]     = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // category name to confirm
+
+  // Fetch course-counts for all categories once on open
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiClient.get("/courses");
+        const courses = res.data.data || [];
+        const counts = {};
+        courses.forEach(c => {
+          if (c.category) counts[c.category] = (counts[c.category] || 0) + 1;
+        });
+        setCourseCounts(counts);
+      } catch { /* non-critical */ }
+    })();
+  }, []);
+
+  const refreshCategories = async () => {
+    const res = await apiClient.get("/courses/categories");
+    const cats = res.data.data || res.data || [];
+    setList(cats);
+    return cats;
+  };
+
+  const handleAdd = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    if (list.includes(trimmed)) { toast.error("Category already exists"); return; }
+    // Adding a category means creating a dummy placeholder course with that category
+    // — instead we just optimistically add it to the local list and let it show
+    // in the dropdown. It persists to DB when admin creates their first course with it.
+    setList(prev => [...prev, trimmed].sort());
+    setNewName("");
+    toast.success(`Category "${trimmed}" added`);
+    onSaved([...list, trimmed].sort());
+  };
+
+  const handleStartRename = (idx) => {
+    setEditingIdx(idx);
+    setEditName(list[idx]);
+  };
+
+  const handleRename = async (oldName) => {
+    const trimmed = editName.trim();
+    if (!trimmed || trimmed === oldName) { setEditingIdx(null); return; }
+    if (list.includes(trimmed)) { toast.error("That name already exists"); return; }
+    try {
+      setSaving(true);
+      await apiClient.patch("/courses/categories/rename", { old_name: oldName, new_name: trimmed });
+      const updated = list.map(c => c === oldName ? trimmed : c).sort();
+      setList(updated);
+      setEditingIdx(null);
+      setCourseCounts(prev => {
+        const next = { ...prev };
+        next[trimmed] = next[oldName] || 0;
+        delete next[oldName];
+        return next;
+      });
+      toast.success(`Renamed "${oldName}" → "${trimmed}"`);
+      onSaved(updated);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to rename category");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (name) => {
+    const count = courseCounts[name] || 0;
+    if (count > 0) {
+      toast.error(`Cannot delete "${name}" — ${count} course${count > 1 ? "s are" : " is"} still assigned to it. Reassign them first.`, { duration: 5000 });
+      setConfirmDelete(null);
+      return;
+    }
+    try {
+      setDeleting(name);
+      await apiClient.delete(`/courses/categories/${encodeURIComponent(name)}`);
+      const updated = list.filter(c => c !== name);
+      setList(updated);
+      setConfirmDelete(null);
+      toast.success(`Category "${name}" deleted`);
+      onSaved(updated);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to delete category");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+              <Tag size={15} className="text-violet-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Manage Categories</h2>
+              <p className="text-[11px] text-slate-400">{list.length} categories</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex items-center justify-center transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Add new */}
+        <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/60">
+          <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 block">Add New Category</label>
+          <div className="flex gap-2">
+            <input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAdd()}
+              placeholder="e.g. Mental Health"
+              className="flex-1 h-9 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+              maxLength={100}
+            />
+            <button
+              onClick={handleAdd}
+              disabled={!newName.trim()}
+              className="h-9 px-4 text-xs font-semibold bg-violet-600 text-white rounded-lg hover:bg-violet-500 disabled:opacity-40 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        {/* Category list */}
+        <div className="overflow-y-auto flex-1 px-6 py-3 space-y-1">
+          {list.map((cat, idx) => {
+            const count = courseCounts[cat] || 0;
+            const isRenaming = editingIdx === idx;
+            const isDeleting = deleting === cat;
+            const isConfirming = confirmDelete === cat;
+
+            return (
+              <div key={cat} className={`rounded-xl border transition-all ${isRenaming ? "border-violet-300 bg-violet-50/50" : "border-slate-100 bg-white hover:border-slate-200"}`}>
+                {isRenaming ? (
+                  <div className="flex items-center gap-2 p-3">
+                    <input
+                      autoFocus
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleRename(cat); if (e.key === "Escape") setEditingIdx(null); }}
+                      className="flex-1 h-8 px-2 text-sm border border-violet-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+                      maxLength={100}
+                    />
+                    <button onClick={() => handleRename(cat)} disabled={saving} className="h-8 px-3 text-xs font-semibold bg-violet-600 text-white rounded-lg hover:bg-violet-500 disabled:opacity-50 transition-colors">
+                      {saving ? "…" : "Save"}
+                    </button>
+                    <button onClick={() => setEditingIdx(null)} className="h-8 px-2 text-xs text-slate-400 hover:text-slate-700 transition-colors">Cancel</button>
+                  </div>
+                ) : isConfirming ? (
+                  <div className="p-3">
+                    <p className="text-xs text-red-700 font-medium mb-2">
+                      {count > 0
+                        ? `⚠ Cannot delete — ${count} course${count > 1 ? "s" : ""} assigned. Reassign first.`
+                        : `Delete "${cat}"? This cannot be undone.`}
+                    </p>
+                    <div className="flex gap-2">
+                      {count === 0 && (
+                        <button onClick={() => handleDelete(cat)} disabled={isDeleting} className="h-7 px-3 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 transition-colors">
+                          {isDeleting ? "Deleting…" : "Confirm Delete"}
+                        </button>
+                      )}
+                      <button onClick={() => setConfirmDelete(null)} className="h-7 px-3 text-xs text-slate-500 hover:text-slate-700 transition-colors">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 px-3 py-2.5 group">
+                    <div className="w-6 h-6 rounded-md bg-violet-50 flex items-center justify-center flex-shrink-0">
+                      <FolderOpen size={12} className="text-violet-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{cat}</p>
+                      <p className="text-[11px] text-slate-400">{count > 0 ? `${count} course${count > 1 ? "s" : ""}` : "No courses yet"}</p>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleStartRename(idx)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors" title="Rename">
+                        <Pencil size={12} />
+                      </button>
+                      <button onClick={() => setConfirmDelete(cat)} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" title="Delete">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {list.length === 0 && (
+            <div className="py-8 text-center text-slate-400">
+              <Tag size={24} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No categories yet</p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/40 rounded-b-2xl">
+          <p className="text-[11px] text-slate-400">
+            💡 Categories with courses cannot be deleted — reassign courses first.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Category Select Dropdown ─────────────────────────────────────────────────
+function CategorySelect({ value, onChange, orgId }) {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [manageOpen, setManageOpen] = useState(false);
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get("/courses/categories");
+      setCategories(res.data.data || res.data || []);
+    } catch {
+      setCategories([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchCategories(); }, []);
+
+  return (
+    <>
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <div className="relative">
+            <select
+              value={value || ""}
+              onChange={e => onChange(e.target.value)}
+              disabled={loading}
+              className="w-full h-9 pl-3 pr-8 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none disabled:opacity-50 cursor-pointer"
+            >
+              <option value="" disabled>
+                {loading ? "Loading categories…" : "Select a category"}
+              </option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setManageOpen(true)}
+          className="h-9 px-3 text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200 rounded-lg hover:bg-violet-100 flex items-center gap-1.5 transition-colors flex-shrink-0"
+          title="Add or manage categories"
+        >
+          <Tag size={12} />
+          Manage
+        </button>
+      </div>
+
+      {manageOpen && (
+        <CategoryManagerModal
+          categories={categories}
+          onClose={() => setManageOpen(false)}
+          onSaved={(updated) => {
+            setCategories(updated);
+            // If current value was deleted from the list, keep it but show warning
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 
 export default function CourseBuilder() {
   const { user } = /** @type {any} */ (useOutletContext() || {});
@@ -224,6 +512,7 @@ function Editor({ course, onBack, onCancel, user }) {
         duration_minutes: parseInt(courseData.duration_minutes) || 60,
         pass_mark: parseInt(courseData.pass_mark) || 75,
         certificate_enabled: courseData.certificate_enabled !== false,
+        allow_retake: courseData.allow_retake !== false,
         mandatory: courseData.mandatory || false,
         target_roles: courseData.target_roles || [],
         organisation_id: user?.organization_id,
@@ -350,7 +639,7 @@ function Editor({ course, onBack, onCancel, user }) {
       {/* Tabs */}
       <div className="bg-white border-b border-slate-100 px-6">
         <div className="flex gap-0">
-          {[["content", "Content"], ["settings", "Settings"]].map(([key, label]) => (
+          {[["content", "Content"], ["settings", "Settings"], ["preview", "Preview"]].map(([key, label]) => (
             <button key={key} onClick={() => setTab(key)}
               className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px ${tab === key ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
               {label}
@@ -476,16 +765,21 @@ function Editor({ course, onBack, onCancel, user }) {
           <div className="max-w-2xl mx-auto p-6 space-y-4">
             <div className="card p-5 space-y-4">
               <h3 className="font-heading font-bold text-slate-900">Course Settings</h3>
+
+              {/* Category — full width row with manage button */}
+              <div>
+                <label className="field-label mb-1.5 block">Category *</label>
+                <CategorySelect
+                  value={courseData.category || ""}
+                  onChange={(val) => setCourseData({ ...courseData, category: val })}
+                  orgId={user?.organization_id}
+                />
+                {!courseData.category && (
+                  <p className="text-[11px] text-amber-600 mt-1">⚠ Please select a category — it determines how this course appears in filters.</p>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="field-label">Category *</label>
-                  <input
-                    value={courseData.category || ""}
-                    onChange={e => setCourseData({ ...courseData, category: e.target.value })}
-                    className="w-full h-9 px-3 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g. Safeguarding"
-                  />
-                </div>
                 <div>
                   <label className="field-label">Level</label>
                   <select
@@ -518,30 +812,98 @@ function Editor({ course, onBack, onCancel, user }) {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={courseData.certificate_enabled !== false}
-                    onChange={e => setCourseData({ ...courseData, certificate_enabled: e.target.checked })}
-                    className="rounded border-slate-300"
-                  />
-                  <span className="text-sm text-slate-700">Enable certificates on completion</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={courseData.mandatory || false}
-                    onChange={e => setCourseData({ ...courseData, mandatory: e.target.checked })}
-                    className="rounded border-slate-300"
-                  />
-                  <span className="text-sm text-slate-700">Mandatory for all learners</span>
-                </label>
+              <div className="space-y-3 pt-2">
+                {/* Switch 1: Certificates */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100/50 hover:bg-slate-100/30 transition-colors">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800">Auto-generate Certificate</p>
+                    <p className="text-[10px] text-slate-400">Issue a completion certificate on passing this course</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCourseData({ ...courseData, certificate_enabled: courseData.certificate_enabled === false ? true : false })}
+                    className={`w-9 h-5 rounded-full relative transition-colors duration-200 focus:outline-none ${courseData.certificate_enabled !== false ? "bg-blue-600" : "bg-slate-200"}`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${courseData.certificate_enabled !== false ? "right-0.5" : "left-0.5"}`} />
+                  </button>
+                </div>
+
+                {/* Switch 2: Mandatory */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100/50 hover:bg-slate-100/30 transition-colors">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800">Mandatory Course</p>
+                    <p className="text-[10px] text-slate-400">Enforce this course as compulsory for target roles</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCourseData({ ...courseData, mandatory: !courseData.mandatory })}
+                    className={`w-9 h-5 rounded-full relative transition-colors duration-200 focus:outline-none ${courseData.mandatory ? "bg-blue-600" : "bg-slate-200"}`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${courseData.mandatory ? "right-0.5" : "left-0.5"}`} />
+                  </button>
+                </div>
+
+                {/* Switch 3: Retakes */}
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100/50 hover:bg-slate-100/30 transition-colors">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800">Allow Retakes</p>
+                    <p className="text-[10px] text-slate-400">Permit learners to retake assessments upon failure</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCourseData({ ...courseData, allow_retake: courseData.allow_retake === false ? true : false })}
+                    className={`w-9 h-5 rounded-full relative transition-colors duration-200 focus:outline-none ${courseData.allow_retake !== false ? "bg-blue-600" : "bg-slate-200"}`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${courseData.allow_retake !== false ? "right-0.5" : "left-0.5"}`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "preview" && (
+          <div className="max-w-xl mx-auto p-6 space-y-4">
+            <div className="card overflow-hidden bg-white shadow-sm border border-slate-100 rounded-2xl">
+              <div className="h-36 bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center p-6 text-white relative">
+                <p className="font-heading font-bold text-xl text-center leading-snug">{courseData.title || "Untitled Course"}</p>
+                <p className="text-xs text-blue-100 mt-2">{courseData.category || "Uncategorized"} · {courseData.level || "FOUNDATION"}</p>
+              </div>
+              <div className="p-5 space-y-3">
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">{sections.length} sections</span>
+                  <span className="text-xs text-slate-400">·</span>
+                  <span className="text-xs text-slate-500">Estimated {courseData.duration_minutes || 60} minutes</span>
+                  {courseData.mandatory && (
+                    <>
+                      <span className="text-xs text-slate-400">·</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700">Mandatory</span>
+                    </>
+                  )}
+                </div>
+                {sections.map((section, i) => {
+                  const def = BLOCK_DEFAULTS[section.type] || {};
+                  const Icon = def.icon || PenTool;
+                  return (
+                    <div key={section.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-xs font-bold text-slate-400 w-5 text-center">{String(i + 1).padStart(2, "0")}</span>
+                      <div className={`w-8 h-8 rounded-lg ${def.bg || "bg-slate-100"} flex items-center justify-center flex-shrink-0`}>
+                        <Icon size={14} className={def.color || "text-slate-500"} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{section.title}</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{section.type}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {sections.length === 0 && <p className="text-sm text-slate-400 text-center py-8">No sections yet — add some content in the Content tab</p>}
               </div>
             </div>
           </div>
         )}
       </div>
+
     </div>
   );
 }

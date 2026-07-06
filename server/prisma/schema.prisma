@@ -243,6 +243,7 @@ model Course {
   thumbnail_url       String?
   pass_mark           Int?
   certificate_enabled Boolean      @default(true)
+  allow_retake        Boolean      @default(true)
   status              CourseStatus @default(DRAFT)
   mandatory           Boolean      @default(false)
   target_roles        String[]     @default([])

@@ -149,3 +149,20 @@ export const deleteQuizAnswer = asyncHandler(async (req: Request, res: Response)
   await coursesService.deleteQuizAnswer(req.organizationId!, req.params.quizId as string, req.params.questionId as string, req.params.answerId as string);
   sendResponse(res, 204, null);
 });
+
+// ─── Category Controllers ─────────────────────────────────────────────────────
+
+export const listCategories = asyncHandler(async (req: Request, res: Response) => {
+  const categories = await coursesService.getCategories(req.organizationId!);
+  sendResponse(res, 200, categories);
+});
+
+export const renameCategoryHandler = asyncHandler(async (req: Request, res: Response) => {
+  const result = await coursesService.renameCategory(req.organizationId!, req.body.old_name, req.body.new_name);
+  sendResponse(res, 200, result);
+});
+
+export const deleteCategoryHandler = asyncHandler(async (req: Request, res: Response) => {
+  const result = await coursesService.deleteCategory(req.organizationId!, decodeURIComponent(req.params.name as string));
+  sendResponse(res, 200, result);
+});

@@ -10,6 +10,7 @@ export const createCourseSchema = z.object({
     duration_minutes: z.number().int().positive().optional(),
     pass_mark: z.number().int().min(0).max(100).optional(),
     certificate_enabled: z.boolean().default(true),
+    allow_retake: z.boolean().default(true),
     mandatory: z.boolean().default(false),
     target_roles: z.array(z.string()).default([]),
     sort_order: z.number().int().default(0),
@@ -26,6 +27,7 @@ export const updateCourseSchema = z.object({
     thumbnail_url: z.string().url().optional(),
     pass_mark: z.number().int().min(0).max(100).optional(),
     certificate_enabled: z.boolean().optional(),
+    allow_retake: z.boolean().optional(),
     status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).optional(),
     mandatory: z.boolean().optional(),
     target_roles: z.array(z.string()).optional(),
@@ -172,5 +174,14 @@ export const updateQuizAnswerSchema = z.object({
     text: z.string().min(1).max(300).optional(),
     is_correct: z.boolean().optional(),
     sort_order: z.number().int().optional(),
+  }),
+});
+
+// ─── Categories ────────────────────────────────────────────────────────────────
+
+export const renameCategorySchema = z.object({
+  body: z.object({
+    old_name: z.string().min(1).max(100),
+    new_name: z.string().min(1).max(100),
   }),
 });
