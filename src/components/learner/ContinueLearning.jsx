@@ -7,7 +7,7 @@ const IN_PROGRESS_COURSE = {
   id: "sg-2",
   title: "Safeguarding Children: Level 2",
   category: "Safeguarding",
-  image: "https://media.base44.com/images/public/6a3a6f4029c809f694c625de/7542d57a4_generated_image.png",
+  image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80",
   progress: 62,
   lastLesson: "The Four Categories of Abuse",
   currentLesson: "Recognising Neglect",
@@ -19,7 +19,7 @@ const IN_PROGRESS_COURSE = {
 const NEXT_COURSE = {
   title: "Therapeutic Parenting in Practice",
   category: "Therapeutic Parenting",
-  image: "https://media.base44.com/images/public/6a3a6f4029c809f694c625de/ef9f132b5_generated_image.png",
+  image: "https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=400&q=80",
   level: "Intermediate",
   cpd: 1.5,
 };

@@ -178,7 +178,7 @@ export class AuthController {
         res.status(403).json({ success: false, error: msg, code: 'AUTH_FORBIDDEN' });
       } else {
         logger.error('Social Login Error', error);
-        res.status(500).json({ success: false, error: 'Internal server error', code: 'AUTH_INTERNAL_ERROR' });
+        res.status(500).json({ success: false, error: 'Internal server error: ' + msg, code: 'AUTH_INTERNAL_ERROR' });
       }
     }
   }

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, RefreshCw, LogIn } from 'lucide-react';
-import { tokenStorage } from '@/api/base44Client';
+import { tokenStorage } from '@/api/apiClient';
 
 export default function TokenExpired() {
     const navigate = useNavigate();

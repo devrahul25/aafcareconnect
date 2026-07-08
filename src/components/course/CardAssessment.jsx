@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { useState, useMemo } from "react";
 import { CheckCircle2, XCircle, RotateCcw, Award, ArrowRight, Sparkles, Zap, Brain } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import confetti from "canvas-confetti";
 import CircularProgress from "./CircularProgress";
 
@@ -30,16 +29,9 @@ function QuestionCard({ q, qi, total, onAnswer }) {
     if (isCorrect) {
       confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 }, colors: ["#2563eb", "#10b981", "#f59e0b"] });
     }
-    const feedback = await base44.integrations.Core.InvokeLLM({
-      prompt: `You are a supportive UK safeguarding training coach. A learner just answered a question ${isCorrect ? "correctly" : "incorrectly"}.
-Question: "${q.q}"
-Their answer: "${q.options[oi]}"
-Correct answer: "${q.options[q.correct]}"
-Standard explanation: "${q.explanation}"
-
-Give a warm, encouraging 2-sentence response. If incorrect, briefly explain why the correct answer matters for UK foster carers. If correct, reinforce the learning with a real-world connection. Keep it conversational and supportive.`,
-    });
-    setAiFeedback(typeof feedback === "string" ? feedback : feedback?.response || q.explanation);
+    // Use the static explanation provided with the question.
+    // AI-powered personalised feedback will be added in a future sprint.
+    setAiFeedback(q.explanation);
     setLoadingFeedback(false);
   };
 

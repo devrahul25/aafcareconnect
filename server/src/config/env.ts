@@ -36,7 +36,7 @@ const envSchema = z.object({
   AWS_CLOUDFRONT_PRIVATE_KEY: z.string().min(1).optional(),
 
   // JWT & Authentication
-  JWT_SECRET: z.string().min(32).optional(), // Optional for now until custom JWT is built
+  JWT_SECRET: z.string().min(32).default('your-super-secret-jwt-key-for-dev-only-min-32-chars'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   OTP_SECRET: z.string().min(32),
 

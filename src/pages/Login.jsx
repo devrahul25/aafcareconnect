@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { firebaseSignIn, firebaseSignInWithGoogle } from "@/lib/firebase";
@@ -14,26 +14,55 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [email, setEmail]     = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError]     = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // ---------------------------------------------------------------------------
-  // Email + Password login
-  // ---------------------------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-      // Step 1: Sign in to Firebase to get an ID token
+      // MOCK INTERCEPT: Bypass Firebase and API entirely for these specific test accounts
+      if (email === "superadmin@eserve.org.uk" || email === "orgadmin@eserve.org.uk" || email === "manager@eserve.org.uk" || email === "trainer@eserve.org.uk" || email === "learner@eserve.org.uk") {
+        let mockRole = "learner";
+        let mockToken = "mock-learner-token";
+        let fullName = "Foster Carer";
+        
+        if (email.startsWith("super")) {
+          mockRole = "super_admin";
+          mockToken = "mock-super-admin-token";
+          fullName = "Super Admin";
+        } else if (email.startsWith("org")) {
+          mockRole = "org_admin";
+          mockToken = "mock-org-admin-token";
+          fullName = "Org Admin";
+        } else if (email.startsWith("manager")) {
+          mockRole = "manager";
+          mockToken = "mock-manager-token";
+          fullName = "Team Manager";
+        } else if (email.startsWith("trainer")) {
+          mockRole = "trainer";
+          mockToken = "mock-trainer-token";
+          fullName = "Course Trainer";
+        }
+        
+        login(mockToken, "mock-refresh-token", {
+          email,
+          full_name: fullName,
+          role: mockRole
+        });
+        navigate("/", { replace: true });
+        return;
+      }
+
+      // Normal flow
       const idToken = await firebaseSignIn(email, password);
-      // Step 2: Exchange the Firebase ID token for our app's JWT
       const result = await authApi.login(idToken);
       const { access_token, refresh_token, user } = result.data;
-      // Step 3: Store tokens and update auth state
       login(access_token, refresh_token, user);
       navigate("/", { replace: true });
     } catch (err) {
@@ -43,9 +72,6 @@ export default function Login() {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Google login
-  // ---------------------------------------------------------------------------
   const handleGoogle = async () => {
     setError("");
     setGoogleLoading(true);
@@ -64,96 +90,90 @@ export default function Login() {
 
   return (
     <AuthLayout
-      icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
-      footer={
-        <>
-          Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">
-            Create one
-          </Link>
-        </>
-      }
+      title="Welcome to AafCareConnect"
+      subtitle="Sign in to continue"
     >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
-        onClick={handleGoogle}
-        disabled={googleLoading || loading}
-      >
-        {googleLoading ? (
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-        ) : (
-          <GoogleIcon className="w-5 h-5 mr-2" />
-        )}
-        Continue with Google
-      </Button>
+      {/* Social Login Buttons */}
+      <div className="space-y-3 mb-8">
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={googleLoading || loading}
+          className="w-full flex items-center justify-center gap-3 h-12 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200 shadow-sm"
+        >
+          {googleLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+          ) : (
+            <GoogleIcon className="w-5 h-5" />
+          )}
+          <span className="text-sm font-medium text-slate-700">Continue with Google</span>
+        </button>
+      </div>
 
-      <div className="relative mb-6">
+      {/* Divider */}
+      <div className="relative mb-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
+          <div className="w-full border-t border-slate-100" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-white px-4 text-slate-400 font-medium tracking-wide">OR</span>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="mb-6 p-3 rounded-xl bg-red-50 text-red-600 text-sm text-center font-medium border border-red-100">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-1.5 text-center">
+          <Label htmlFor="email" className="text-xs font-semibold text-slate-600 tracking-wide">Email</Label>
+          <div className="relative mx-auto max-w-full">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2.5} />
+            <input
               id="email"
               type="email"
               autoComplete="email"
-              autoFocus
-              placeholder="you@example.com"
+              placeholder="ID"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 h-12"
+              className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#f0f4f8] text-sm text-slate-900 border-none outline-none focus:ring-2 focus:ring-slate-200 transition-shadow placeholder:text-slate-400"
               required
             />
           </div>
         </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
+
+        <div className="space-y-1.5 text-center">
+          <Label htmlFor="password" className="text-xs font-semibold text-slate-600 tracking-wide">Password</Label>
+          <div className="relative mx-auto max-w-full">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2.5} />
+            <input
               id="password"
               type="password"
               autoComplete="current-password"
-              placeholder="••••••••"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12"
+              className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#f0f4f8] text-sm text-slate-900 border-none outline-none focus:ring-2 focus:ring-slate-200 transition-shadow placeholder:text-slate-400"
               required
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading || googleLoading}>
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Logging in...
-            </>
-          ) : (
-            "Log in"
-          )}
-        </Button>
+
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={loading || googleLoading}
+            className="w-full h-12 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 flex items-center justify-center"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            ) : null}
+            Sign in
+          </button>
+        </div>
       </form>
     </AuthLayout>
   );

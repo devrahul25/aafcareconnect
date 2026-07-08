@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import { apiClient } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 import { toast } from "sonner";
 import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
@@ -336,6 +336,16 @@ export default function CourseBuilder() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
+      
+      // MOCK INTERCEPT
+      if (['super_admin', 'org_admin', 'manager', 'trainer'].includes(user?.role)) {
+        setCourses([
+          { id: "1", title: "Safeguarding Children Level 2", status: "PUBLISHED", category: "Safeguarding", updated_at: new Date().toISOString() },
+          { id: "2", title: "First Aid in Social Care", status: "DRAFT", category: "Health & Safety", updated_at: new Date().toISOString() }
+        ]);
+        return;
+      }
+
       const params = user?.organization_id ? { organisation_id: user.organization_id } : {};
       const response = await apiClient.get("/courses", { params });
       setCourses(response.data.data || []);

@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, Link } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
 import {
   Users, BookOpen, CheckCircle2, Clock, AlertTriangle,
-  TrendingUp, Award, ArrowRight, Download, UserPlus, Play
+  TrendingUp, Award, ArrowRight, Download, UserPlus, Play,
+  Building2, Library, Bell
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -46,13 +48,24 @@ function pctText(pct) {
 
 export default function Dashboard() {
   const { user, organisationId } = /** @type {any} */ (useOutletContext() || {});
+  const { hasRole } = useAuth();
   const name = user?.full_name?.split(" ")[0] || "there";
+  const isSuperAdmin = hasRole("super_admin");
+  const isOrgAdmin = hasRole("org_admin") && !isSuperAdmin;
+  const isManager = hasRole("manager") && !isOrgAdmin && !isSuperAdmin;
+  const isTrainer = hasRole("trainer") && !isManager && !isOrgAdmin && !isSuperAdmin;
+  const isLearner = !isSuperAdmin && !isOrgAdmin && !isManager && !isTrainer;
 
   const [metrics, setMetrics] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isSuperAdmin || isManager || isTrainer || isLearner) {
+      setLoading(false);
+      return;
+    }
+    
     if (!organisationId) {
       // Demo fallback
       const m = getDemoMetrics();
@@ -71,7 +84,7 @@ export default function Dashboard() {
         setActivity(buildDemoActivity());
       })
       .finally(() => setLoading(false));
-  }, [organisationId]);
+  }, [organisationId, isSuperAdmin]);
 
   const kpis = metrics ? [
     { label: "Active Learners",       value: String(metrics.total),          icon: Users,         bg: "bg-blue-600",    delta: "+2",     deltaLabel: "this week",    trend: "up"   },
@@ -87,6 +100,413 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isTrainer) {
+    return (
+      <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-heading font-bold text-2xl text-slate-900">Good morning, {name} 👋</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Trainer Dashboard · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="h-9 px-4 text-sm font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
+              <Download size={14}/> Export Analytics
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Total Courses</p>
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"><BookOpen size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">12</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-500">8 published</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Total Learners</p>
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0"><Users size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">450</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 12%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Avg Completion</p>
+              <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0"><TrendingUp size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">78%</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-violet-600">↑ 2%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Avg Quiz Score</p>
+              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0"><Award size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">85%</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-500">across all courses</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Pending Reviews</p>
+              <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center flex-shrink-0"><Clock size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">14</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-rose-600">action required</span></div>
+          </div>
+        </div>
+
+        {/* Charts row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-heading font-bold text-slate-900">Enrolment vs Completion</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Learner metrics across all your courses</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={TREND_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradTrainerAssigned" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="gradTrainerCompleted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
+                <Tooltip contentStyle={{ borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: 12 }}/>
+                <Area type="monotone" dataKey="assigned" stroke="#8b5cf6" strokeWidth={2} fill="url(#gradTrainerAssigned)" dot={false}/>
+                <Area type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={2} fill="url(#gradTrainerCompleted)" dot={false}/>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading font-bold text-slate-900">Recent Course Activity</h2>
+            </div>
+            <div className="space-y-0">
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">SJ</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Sarah Jenkins</span> completed your quiz in <span className="font-semibold">First Aid</span></p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">10 mins ago</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5"><Play size={10} fill="currentColor"/></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug">New video uploaded to <span className="font-semibold text-slate-900">Safeguarding Children</span></p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">1 hour ago</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5"><BookOpen size={10}/></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Attachment Theory</span> was published.</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">3 hours ago</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isManager) {
+    return (
+      <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-heading font-bold text-2xl text-slate-900">Good morning, {name} 👋</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Manager Dashboard · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="h-9 px-4 text-sm font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
+              <Download size={14}/> Export Team Report
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Assigned Learners</p>
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"><Users size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">14</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 1</span><span className="text-[11px] text-slate-400">new this week</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Team Compliance</p>
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0"><TrendingUp size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">92%</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 4%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Certificates Expiring</p>
+              <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0"><AlertTriangle size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">3</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-500">within 30 days</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">High Risk Learners</p>
+              <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center flex-shrink-0"><AlertTriangle size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">1</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-rose-600">action required</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Pending Reviews</p>
+              <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0"><Clock size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">5</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-500">assignments</span></div>
+          </div>
+        </div>
+
+        {/* Charts row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-heading font-bold text-slate-900">Team Learning Progress</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Assigned vs completed courses</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={TREND_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradMgrAssigned" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="gradMgrCompleted" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
+                <Tooltip contentStyle={{ borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: 12 }}/>
+                <Area type="monotone" dataKey="assigned" stroke="#3b82f6" strokeWidth={2} fill="url(#gradMgrAssigned)" dot={false}/>
+                <Area type="monotone" dataKey="completed" stroke="#10b981" strokeWidth={2} fill="url(#gradMgrCompleted)" dot={false}/>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading font-bold text-slate-900">Recent Team Activity</h2>
+            </div>
+            <div className="space-y-0">
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">SJ</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Sarah Jenkins</span> completed <span className="font-semibold">First Aid</span></p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">10 mins ago</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">DM</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">David Miller</span> submitted a quiz</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">1 hour ago</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">EW</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Emma Watson</span> has an expiring certificate</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">3 hours ago</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSuperAdmin) {
+    return (
+      <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-heading font-bold text-2xl text-slate-900">Platform Command Center</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Overview of platform health, usage, and revenue · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="h-9 px-4 text-sm font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
+              <Download size={14}/> Generate Report
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link to="/superadmin/organisations" className="card p-4 flex items-center gap-3 hover:border-blue-500 hover:bg-blue-50/30 transition-all group cursor-pointer">
+            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Building2 size={18} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900">Create Organisation</div>
+              <div className="text-xs text-slate-500">Onboard a new client</div>
+            </div>
+          </Link>
+          <Link to="/superadmin/users" className="card p-4 flex items-center gap-3 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group cursor-pointer">
+            <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <Users size={18} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900">Invite Platform User</div>
+              <div className="text-xs text-slate-500">Add an admin or learner</div>
+            </div>
+          </Link>
+          <Link to="/superadmin/course-library" className="card p-4 flex items-center gap-3 hover:border-violet-500 hover:bg-violet-50/30 transition-all group cursor-pointer">
+            <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+              <Library size={18} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900">Create Course Template</div>
+              <div className="text-xs text-slate-500">Add to master library</div>
+            </div>
+          </Link>
+          <Link to="/superadmin/notifications" className="card p-4 flex items-center gap-3 hover:border-amber-500 hover:bg-amber-50/30 transition-all group cursor-pointer">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+              <Bell size={18} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-slate-900">Send Announcement</div>
+              <div className="text-xs text-slate-500">Broadcast to platform</div>
+            </div>
+          </Link>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Total Organisations</p>
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"><Building2 size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">42</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 3</span><span className="text-[11px] text-slate-400">new this month</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Active Learners</p>
+              <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0"><Users size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">12,450</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 8%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Monthly Revenue</p>
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0"><span className="text-white font-bold text-sm">£</span></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">£26.4k</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 12%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Platform Compliance</p>
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0"><TrendingUp size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">88%</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 1%</span><span className="text-[11px] text-slate-400">avg across platform</span></div>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Active Subscriptions</p>
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0"><CheckCircle2 size={14} className="text-white"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">38</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 2</span><span className="text-[11px] text-slate-400">new this month</span></div>
+          </div>
+        </div>
+
+        {/* Charts row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-heading font-bold text-slate-900">Platform Usage Growth</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Learners active over the last 6 months</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={TREND_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
+                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
+                <Tooltip contentStyle={{ borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: 12 }}/>
+                <Area type="monotone" dataKey="completed" name="Active Learners (k)" stroke="#8b5cf6" strokeWidth={2} fill="url(#gradUsers)" dot={false}/>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading font-bold text-slate-900">Recent Platform Activity</h2>
+            </div>
+            <div className="space-y-0">
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">NW</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">New Organisation Registered</span> <span className="text-slate-500">Oakwood Care Homes</span></p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">10 mins ago</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">SR</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Subscription Upgraded</span> <span className="text-slate-500">Horizon Fostering</span></p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">1 hour ago</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">TP</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Course Template Published</span> <span className="text-slate-500">Safeguarding Level 2</span></p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">3 hours ago</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

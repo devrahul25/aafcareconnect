@@ -13,12 +13,20 @@ export const authorize = (resource: string, action: string) => {
     for (const ur of req.user.user_roles) {
       if (ur.role && ur.role.permissions) {
         for (const rp of ur.role.permissions) {
-          // If user has admin:manage, they have all permissions
-          if (rp.permission.resource === 'admin' && rp.permission.action === 'manage') {
+          const { resource: res, action: act } = rp.permission;
+
+          // system:root — super_admin bypass (all permissions granted)
+          if (res === 'system' && act === 'root') {
             hasPermission = true;
             break;
           }
-          if (rp.permission.resource === resource && rp.permission.action === action) {
+          // admin:manage — org_admin bypass (all permissions granted)
+          if (res === 'admin' && act === 'manage') {
+            hasPermission = true;
+            break;
+          }
+          // Exact resource:action match
+          if (res === resource && (act === action || act === 'manage')) {
             hasPermission = true;
             break;
           }
@@ -36,3 +44,4 @@ export const authorize = (resource: string, action: string) => {
     next();
   };
 };
+

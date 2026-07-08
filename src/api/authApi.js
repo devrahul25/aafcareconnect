@@ -1,4 +1,4 @@
-import { apiClient } from './base44Client';
+import { apiClient } from './apiClient';
 
 // ---------------------------------------------------------------------------
 // Auth API — all calls go to /api/v1/auth/*

@@ -16,9 +16,22 @@ export const app = express();
 
 // 1. Security & utility middlewares
 app.use(requestIdMiddleware);
-app.use(helmet());
+app.use(helmet({
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+}));
 app.use(cors({
-  origin: env.FRONTEND_URL,
+  origin: (origin, callback) => {
+    if (env.NODE_ENV === 'development') {
+      if (!origin || /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+    }
+    if (origin === env.FRONTEND_URL || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(compression());

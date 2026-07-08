@@ -1,32 +1,130 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Award, PenTool,
-  FileText, Shield, Users, Briefcase, Home, Bot, BarChart3,
-  Settings, ChevronLeft, ChevronRight, LogOut, Lock
+  FileText, Shield, Users, Briefcase, Home, BarChart3,
+  Settings, ChevronLeft, ChevronRight, LogOut, Lock,
+  Building2, CreditCard, PieChart, History, Bell, Library,
+  TrendingUp
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
-const PHASE1 = [
-  { icon: LayoutDashboard, label: "Dashboard",         path: "/dashboard"        },
-  { icon: BookOpen,        label: "Learning Hub",      path: "/learning-hub"     },
-  { icon: Award,           label: "CPD & Certificates",path: "/cpd-certificates" },
-  { icon: PenTool,         label: "Course Builder",       path: "/course-builder"          },
+/**
+ * Navigation items for standard users and organization admins
+ */
+const NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard",        path: "/dashboard"             },
+  { icon: BookOpen,        label: "Learning Hub",     path: "/learning-hub"          },
+  { icon: Award,           label: "CPD & Certificates",path: "/cpd-certificates"    },
   { icon: Briefcase,       label: "Pro Passport",     path: "/professional-passport" },
-  { icon: Shield,          label: "Compliance Hub",   path: "/compliance-hub"        },
-  { icon: Settings,        label: "Administration",   path: "/admin"                 },
+  { icon: Shield,          label: "Compliance Hub",   path: "/compliance-hub",  minRole: "manager" },
+  { icon: PenTool,         label: "Course Builder",   path: "/course-builder",  minRole: "trainer" },
+  { icon: Settings,        label: "Administration",   path: "/admin",           minRole: "org_admin" },
+];
+
+/**
+ * Navigation items exclusively for Organisation Admins
+ */
+const ORG_ADMIN_NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard",           path: "/dashboard" },
+  { icon: BookOpen,        label: "Learning Hub",        path: "/learning-hub" },
+  { icon: Users,           label: "Learners",            path: "/orgadmin/learners" },
+  { icon: Briefcase,       label: "Staff",               path: "/orgadmin/staff" },
+  { icon: PenTool,         label: "Course Builder",      path: "/course-builder" },
+  { icon: Award,           label: "CPD & Certificates",  path: "/cpd-certificates" },
+  { icon: Shield,          label: "Professional Passport",path: "/professional-passport" },
+  { icon: Shield,          label: "Compliance Hub",      path: "/compliance-hub" },
+  { icon: PieChart,        label: "Reports",             path: "/orgadmin/reports" },
+  { icon: Settings,        label: "Administration",      path: "/admin" },
+  { icon: Building2,       label: "Organisation Settings",path: "/orgadmin/settings" },
+  { icon: Bell,            label: "Notifications",       path: "/orgadmin/notifications" },
+];
+
+/**
+ * Navigation items exclusively for Super Admins
+ */
+const SUPER_ADMIN_NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard",           path: "/dashboard" },
+  { icon: Building2,       label: "Organisations",       path: "/superadmin/organisations" },
+  { icon: Users,           label: "Platform Users",      path: "/superadmin/users" },
+  { icon: Library,         label: "Course Library",      path: "/superadmin/course-library" },
+  { icon: CreditCard,      label: "Subscriptions",       path: "/superadmin/subscriptions" },
+  { icon: PieChart,        label: "Reports & Analytics", path: "/superadmin/reports" },
+  { icon: History,         label: "Audit Logs",          path: "/superadmin/audit-logs" },
+  { icon: Bell,            label: "Notifications",       path: "/superadmin/notifications" },
+  { icon: Settings,        label: "Platform Settings",   path: "/superadmin/settings" },
+];
+
+/**
+ * Navigation items exclusively for Managers / Supervisors
+ */
+const MANAGER_NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard",          path: "/dashboard" },
+  { icon: Users,           label: "My Learners",        path: "/manager/learners" },
+  { icon: TrendingUp,      label: "Learning Progress",  path: "/manager/progress" },
+  { icon: BookOpen,        label: "Course Assignments", path: "/manager/assignments" },
+  { icon: Shield,          label: "Compliance Hub",     path: "/manager/compliance" },
+  { icon: Award,           label: "Certificates",       path: "/manager/certificates" },
+  { icon: FileText,        label: "Documents",          path: "/manager/documents" },
+  { icon: PieChart,        label: "Reports",            path: "/manager/reports" },
+  { icon: Bell,            label: "Notifications",      path: "/manager/notifications" },
+];
+
+/**
+ * Navigation items exclusively for Trainers / Course Creators
+ */
+const TRAINER_NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard",           path: "/dashboard" },
+  { icon: BookOpen,        label: "My Courses",          path: "/trainer/courses" },
+  { icon: PenTool,         label: "Course Builder",      path: "/course-builder" },
+  { icon: FileText,        label: "Lessons",             path: "/trainer/lessons" },
+  { icon: Award,           label: "Quizzes & Assessments",path: "/trainer/quizzes" },
+  { icon: BarChart3,       label: "Course Analytics",    path: "/trainer/analytics" },
+  { icon: Library,         label: "Resources",           path: "/trainer/resources" },
+  { icon: PenTool,         label: "Draft Courses",       path: "/trainer/drafts" },
+  { icon: Shield,          label: "Published Courses",   path: "/trainer/published" },
+  { icon: Bell,            label: "Notifications",       path: "/trainer/notifications" },
+];
+
+/**
+ * Navigation items exclusively for Learners / Foster Carers
+ */
+const LEARNER_NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard",             path: "/dashboard" },
+  { icon: BookOpen,        label: "My Learning",           path: "/learner/learning" },
+  { icon: Award,           label: "Certificates",          path: "/learner/certificates" },
+  { icon: History,         label: "CPD Record",            path: "/learner/cpd" },
+  { icon: Briefcase,       label: "Professional Passport", path: "/professional-passport" },
+  { icon: PenTool,         label: "Assessments",           path: "/learner/assessments" },
+  { icon: Bell,            label: "Notifications",         path: "/learner/notifications" },
+  { icon: Users,           label: "My Profile",            path: "/learner/profile" },
 ];
 
 const COMING_SOON = [
-  { icon: FileText,   label: "Form F Hub"      },
-  { icon: Users,      label: "Recruitment CRM" },
-  { icon: Home,       label: "Placement Hub"   },
-  { icon: BarChart3,  label: "Analytics"       },
-  { icon: Bot,        label: "AI Assistant"    },
+  { icon: FileText,  label: "Form F Hub"      },
+  { icon: Users,     label: "Recruitment CRM" },
+  { icon: Home,      label: "Placement Hub"   },
+  { icon: BarChart3, label: "Analytics"       },
 ];
 
 export default function Sidebar({ user, collapsed, setCollapsed }) {
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, hasRole } = useAuth();
+  const isSuperAdmin = hasRole("super_admin");
+  const isOrgAdmin = hasRole("org_admin") && !isSuperAdmin;
+  const isManager = hasRole("manager") && !isOrgAdmin && !isSuperAdmin;
+  const isTrainer = hasRole("trainer") && !isManager && !isOrgAdmin && !isSuperAdmin;
+  const isLearner = !isSuperAdmin && !isOrgAdmin && !isManager && !isTrainer;
+
+  const visibleItems = isSuperAdmin
+    ? SUPER_ADMIN_NAV_ITEMS
+    : isOrgAdmin
+    ? ORG_ADMIN_NAV_ITEMS
+    : isManager
+    ? MANAGER_NAV_ITEMS
+    : isTrainer
+    ? TRAINER_NAV_ITEMS
+    : LEARNER_NAV_ITEMS;
+
   return (
     <aside className={`sidebar flex flex-col h-screen sticky top-0 flex-shrink-0 transition-all duration-200 ${collapsed ? "w-[60px]" : "w-[220px]"} z-30`}>
       {/* Logo */}
@@ -51,7 +149,9 @@ export default function Sidebar({ user, collapsed, setCollapsed }) {
             </div>
             <div className="min-w-0">
               <p className="text-slate-200 text-xs font-semibold truncate leading-tight">{user.full_name || "User"}</p>
-              <p className="text-slate-500 text-[10px] truncate capitalize leading-tight">{user.role || "Administrator"}</p>
+              <p className="text-slate-500 text-[10px] truncate capitalize leading-tight">
+                {user.role?.replace(/_/g, " ") || "Learner"}
+              </p>
             </div>
           </div>
         </div>
@@ -59,8 +159,8 @@ export default function Sidebar({ user, collapsed, setCollapsed }) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">
-        {!collapsed && <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 px-2 pb-1.5">Platform</p>}
-        {PHASE1.map(({ icon: Icon, label, path }) => {
+        {!collapsed && <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 px-2 pb-1.5">{isSuperAdmin ? "Platform Owner" : "Platform"}</p>}
+        {visibleItems.map(({ icon: Icon, label, path }) => {
           const active = location.pathname === path || location.pathname.startsWith(path + "/");
           return (
             <Link key={path} to={path} title={collapsed ? label : undefined}
@@ -71,15 +171,19 @@ export default function Sidebar({ user, collapsed, setCollapsed }) {
           );
         })}
 
-        {!collapsed && <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 px-2 pt-4 pb-1.5">Coming in Phase 2+</p>}
-        {collapsed && <div className="my-2 border-t border-white/5" />}
-        {COMING_SOON.map(({ icon: Icon, label }) => (
-          <div key={label} title={collapsed ? label : undefined}
-            className="sidebar-item flex items-center h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium opacity-40 cursor-not-allowed select-none">
-            <Icon size={16} className="flex-shrink-0" />
-            {!collapsed && <><span className="truncate flex-1">{label}</span><Lock size={10} className="text-slate-600 flex-shrink-0" /></>}
-          </div>
-        ))}
+        {!isSuperAdmin && (
+          <>
+            {!collapsed && <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 px-2 pt-4 pb-1.5">Coming in Phase 2+</p>}
+            {collapsed && <div className="my-2 border-t border-white/5" />}
+            {COMING_SOON.map(({ icon: Icon, label }) => (
+              <div key={label} title={collapsed ? label : undefined}
+                className="sidebar-item flex items-center h-9 rounded-lg px-2.5 gap-2.5 text-sm font-medium opacity-40 cursor-not-allowed select-none">
+                <Icon size={16} className="flex-shrink-0" />
+                {!collapsed && <><span className="truncate flex-1">{label}</span><Lock size={10} className="text-slate-600 flex-shrink-0" /></>}
+              </div>
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Sign out */}

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Award, Download, CheckCircle2, BookOpen, Clock } from "lucide-react";
 import { jsPDF } from "jspdf";
 import confetti from "canvas-confetti";
-import { base44 } from "@/api/base44Client";
 
 export default function CertificateScreen({ course, learnerName }) {
   const [downloaded, setDownloaded] = useState(false);

@@ -7,7 +7,7 @@ import CardAssessment from "@/components/course/CardAssessment";
 import CertificateScreen from "@/components/course/CertificateScreen";
 import LearningPanel from "@/components/course/LearningPanel";
 import { useAuth } from "@/lib/AuthContext";
-import { apiClient } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 
 export default function CoursePlayer() {
   const { user } = useAuth();

@@ -9,7 +9,7 @@
  *   const members = await getWorkforceMembers(organisationId);
  */
 
-import { apiClient } from "@/api/base44Client";
+import { apiClient } from "@/api/apiClient";
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 function requireOrg(organisationId) {

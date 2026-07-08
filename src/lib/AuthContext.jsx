@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { tokenStorage, apiClient } from '@/api/base44Client';
+import { tokenStorage, apiClient } from '@/api/apiClient';
 import { authApi } from '@/api/authApi';
 
 // ---------------------------------------------------------------------------
@@ -29,6 +29,37 @@ function isTokenExpired(token) {
 }
 
 // ---------------------------------------------------------------------------
+// Role hierarchy
+// ---------------------------------------------------------------------------
+/**
+ * Numeric level for each role. Higher = more permissions.
+ * Use hasRole() helper rather than comparing strings directly.
+ */
+export const ROLE_LEVEL = {
+  learner:     1,
+  trainer:     2,
+  manager:     3,
+  org_admin:   4,
+  super_admin: 5,
+};
+
+/** Maps JWT payload fields to the user shape expected by the UI. */
+function mapPayloadToUser(payload) {
+  let role = payload.role_type || payload.role || 'learner';
+
+  return {
+    id: payload.sub,
+    email: payload.email,
+    full_name: payload.full_name || payload.name || '',
+    role: role,
+    role_type: role,
+    organization_id: payload.organization_id || null,
+    session_id: payload.sid || null,
+    permissions: payload.permissions || [],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------
 const AuthContext = createContext(null);
@@ -47,6 +78,37 @@ export const AuthProvider = ({ children }) => {
       const refreshToken = tokenStorage.getRefreshToken();
 
       if (!accessToken && !refreshToken) {
+        setIsLoadingAuth(false);
+        return;
+      }
+
+      // Handle mock tokens
+      if (accessToken === 'mock-super-admin-token' || accessToken === 'mock-org-admin-token' || accessToken === 'mock-manager-token' || accessToken === 'mock-trainer-token' || accessToken === 'mock-learner-token') {
+        let email = 'learner@eserve.org.uk';
+        let fullName = 'Foster Carer';
+        let role = 'learner';
+
+        if (accessToken === 'mock-super-admin-token') {
+          email = 'superadmin@eserve.org.uk';
+          fullName = 'Super Admin';
+          role = 'super_admin';
+        } else if (accessToken === 'mock-org-admin-token') {
+          email = 'orgadmin@eserve.org.uk';
+          fullName = 'Org Admin';
+          role = 'org_admin';
+        } else if (accessToken === 'mock-manager-token') {
+          email = 'manager@eserve.org.uk';
+          fullName = 'Team Manager';
+          role = 'manager';
+        } else if (accessToken === 'mock-trainer-token') {
+          email = 'trainer@eserve.org.uk';
+          fullName = 'Course Trainer';
+          role = 'trainer';
+        }
+
+        const mockPayload = { sub: 'mock-id', email, full_name: fullName, role };
+        setUser(mapPayloadToUser(mockPayload));
+        setIsAuthenticated(true);
         setIsLoadingAuth(false);
         return;
       }
@@ -96,22 +158,6 @@ export const AuthProvider = ({ children }) => {
 
     restoreSession();
   }, []);
-
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
-  /** Maps JWT payload fields to the user shape expected by the UI. */
-  function mapPayloadToUser(payload) {
-    return {
-      id: payload.sub,
-      email: payload.email,
-      full_name: payload.full_name || payload.name || '',
-      role: payload.role_type || payload.role || 'user',
-      role_type: payload.role_type || payload.role || 'user',
-      organization_id: payload.organization_id || null,
-      session_id: payload.sid || null,
-    };
-  }
 
   // ---------------------------------------------------------------------------
   // login — called by Login / Register / Social pages after they get tokens
@@ -184,6 +230,31 @@ export const AuthProvider = ({ children }) => {
     }
   }, [logout]);
 
+  /**
+   * Returns true if the current user's role meets or exceeds `minRole`.
+   * Usage: hasRole('manager') — true for manager, org_admin, super_admin.
+   */
+  const hasRole = (minRole) => {
+    if (!user) return false;
+    const userLevel = ROLE_LEVEL[user.role] || 0;
+    const requiredLevel = ROLE_LEVEL[minRole] || 0;
+    return userLevel >= requiredLevel;
+  };
+
+  /**
+   * Returns true if the current user has a specific resource:action permission.
+   * Usage: hasPermission('courses', 'create')
+   */
+  const hasPermission = (resource, action) => {
+    if (!user) return false;
+    // super_admin always passes
+    if (user.role === 'super_admin') return true;
+    return (user.permissions || []).some(
+      (p) => (p.resource === resource && (p.action === action || p.action === 'manage')) ||
+              (p.resource === 'admin' && p.action === 'manage')
+    );
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -199,6 +270,8 @@ export const AuthProvider = ({ children }) => {
       logout,
       logoutAll,
       forceRefreshToken,
+      hasRole,
+      hasPermission,
       navigateToLogin: () => { window.location.href = '/login'; },
       checkUserAuth: () => { },
     }}>

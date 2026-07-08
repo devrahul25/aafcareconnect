@@ -1,5 +1,5 @@
 {
-  "name": "base44-app",
+  "name": "aaf-careconnect",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -27,8 +27,6 @@
     "doctor": "node scripts/doctor.js"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.34",
-    "@base44/vite-plugin": "^1.0.23",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",
