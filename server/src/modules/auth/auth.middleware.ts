@@ -34,16 +34,17 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
   // Development Mock Token Bypass
   // ==========================================
   if (token === 'mock-super-admin-token') {
+    const superAdmin = await prisma.user.findUnique({ where: { email: 'admin@demo.com' } });
     const authReq = req as any;
     authReq.user = {
-      id: 'e23214cd-917a-4867-b558-b10c8f55c857', // admin@demo.com ID
-      organization_id: 'c7558de2-97bb-41b2-866e-9675c79462d2',
+      id: superAdmin?.id || '00000000-0000-0000-0000-000000000000',
+      organization_id: superAdmin?.organization_id || null,
       status: 'ACTIVE',
       email: 'admin@demo.com',
       full_name: 'System Super Admin',
       session_version: 1,
     };
-    authReq.organizationId = 'c7558de2-97bb-41b2-866e-9675c79462d2';
+    authReq.organizationId = superAdmin?.organization_id || null;
     authReq.organizationStatus = 'ACTIVE';
     // Give them root access
     authReq.permissions = new Set(['system:root', 'admin:manage']);
