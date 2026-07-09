@@ -23,9 +23,11 @@ import ComplianceHub from "@/pages/ComplianceHub";
 
 // Super Admin Pages
 import SAOrganisations from "@/pages/superadmin/Organisations";
+import SACreateOrganisation from "@/pages/superadmin/CreateOrganisation";
 import SAOrganisationWorkspace from "@/pages/superadmin/OrganisationWorkspace";
 import SAPlatformUsers from "@/pages/superadmin/PlatformUsers";
 import SACourseLibrary from "@/pages/superadmin/CourseLibrary";
+import SACourseBuilder from "@/pages/superadmin/CourseBuilder/index";
 import SASubscriptions from "@/pages/superadmin/Subscriptions";
 import SAReportsAnalytics from "@/pages/superadmin/ReportsAnalytics";
 import SAAuditLogs from "@/pages/superadmin/AuditLogs";
@@ -140,9 +142,11 @@ const AuthenticatedApp = () => {
 
           {/* Super Admin Routes (Level 5) */}
           <Route path="/superadmin/organisations" element={<ProtectedRoute requiredLevel={5}><SAOrganisations /></ProtectedRoute>} />
+          <Route path="/superadmin/organisations/create" element={<ProtectedRoute requiredLevel={5}><SACreateOrganisation /></ProtectedRoute>} />
           <Route path="/superadmin/organisations/:orgId/*" element={<ProtectedRoute requiredLevel={5}><SAOrganisationWorkspace /></ProtectedRoute>} />
           <Route path="/superadmin/users" element={<SAPlatformUsers />} />
           <Route path="/superadmin/course-library" element={<SACourseLibrary />} />
+          <Route path="/superadmin/course-builder/:courseId" element={<ProtectedRoute requiredLevel={5}><SACourseBuilder /></ProtectedRoute>} />
           <Route path="/superadmin/subscriptions" element={<SASubscriptions />} />
           <Route path="/superadmin/reports" element={<SAReportsAnalytics />} />
           <Route path="/superadmin/audit-logs" element={<SAAuditLogs />} />

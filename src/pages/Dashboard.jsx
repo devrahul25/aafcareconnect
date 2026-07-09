@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { getAgencyMetrics, getCPDCertificates } from "@/lib/orgData";
 import { DEMO_PLATFORM_USERS, DEMO_ALL_CERTIFICATES, DEMO_PLATFORM_ALERTS, getAgencyMetrics as getDemoMetrics } from "@/lib/platformStore";
+import { tokenStorage } from "@/api/apiClient";
 
 // ─── Chart data (static — not org-specific) ───────────────────────────────────
 const TREND_DATA = [
@@ -59,9 +60,25 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [superAdminMetrics, setSuperAdminMetrics] = useState(null);
 
   useEffect(() => {
-    if (isSuperAdmin || isManager || isTrainer || isLearner) {
+    if (isSuperAdmin) {
+      fetch('/api/v1/dashboard/superadmin', {
+        headers: { 'Authorization': `Bearer ${tokenStorage.getAccessToken()}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSuperAdminMetrics(data.data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch superadmin metrics:", err))
+      .finally(() => setLoading(false));
+      return;
+    }
+
+    if (isManager || isTrainer || isLearner) {
       setLoading(false);
       return;
     }
@@ -415,40 +432,40 @@ export default function Dashboard() {
               <p className="text-xs font-semibold text-slate-500 leading-tight">Total Organisations</p>
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"><Building2 size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">42</p>
-            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 3</span><span className="text-[11px] text-slate-400">new this month</span></div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{superAdminMetrics?.totalOrganizations || 0}</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">Live</span><span className="text-[11px] text-slate-400">data</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-slate-500 leading-tight">Active Learners</p>
               <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0"><Users size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">12,450</p>
-            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 8%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{superAdminMetrics?.activeLearners || 0}</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">Live</span><span className="text-[11px] text-slate-400">data</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-slate-500 leading-tight">Monthly Revenue</p>
               <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0"><span className="text-white font-bold text-sm">£</span></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">£26.4k</p>
-            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 12%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">£{superAdminMetrics?.monthlyRevenue || 0}</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">Live</span><span className="text-[11px] text-slate-400">data</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-slate-500 leading-tight">Platform Compliance</p>
               <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0"><TrendingUp size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">88%</p>
-            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 1%</span><span className="text-[11px] text-slate-400">avg across platform</span></div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{superAdminMetrics?.platformCompliance || 0}%</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">Live</span><span className="text-[11px] text-slate-400">data</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-slate-500 leading-tight">Active Subscriptions</p>
               <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0"><CheckCircle2 size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">38</p>
-            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 2</span><span className="text-[11px] text-slate-400">new this month</span></div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{superAdminMetrics?.activeSubscriptions || 0}</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">Live</span><span className="text-[11px] text-slate-400">data</span></div>
           </div>
         </div>
 
@@ -462,7 +479,7 @@ export default function Dashboard() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={TREND_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <AreaChart data={superAdminMetrics?.userGrowth || []} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15}/>
@@ -473,7 +490,7 @@ export default function Dashboard() {
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
                 <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
                 <Tooltip contentStyle={{ borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: 12 }}/>
-                <Area type="monotone" dataKey="completed" name="Active Learners (k)" stroke="#8b5cf6" strokeWidth={2} fill="url(#gradUsers)" dot={false}/>
+                <Area type="monotone" dataKey="users" name="Active Learners" stroke="#8b5cf6" strokeWidth={2} fill="url(#gradUsers)" dot={false}/>
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -483,27 +500,23 @@ export default function Dashboard() {
               <h2 className="font-heading font-bold text-slate-900">Recent Platform Activity</h2>
             </div>
             <div className="space-y-0">
-              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">NW</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">New Organisation Registered</span> <span className="text-slate-500">Oakwood Care Homes</span></p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">10 mins ago</p>
+              {superAdminMetrics?.recentActivity?.length > 0 ? superAdminMetrics.recentActivity.map((log) => (
+                <div key={log.id} className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">
+                    {log.user?.full_name ? log.user.full_name.substring(0,2).toUpperCase() : 'SYS'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-700 leading-snug">
+                      <span className="font-semibold text-slate-900">{log.event_type}</span> <span className="text-slate-500">{log.description || 'System Event'}</span>
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {new Date(log.created_at).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">SR</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Subscription Upgraded</span> <span className="text-slate-500">Horizon Fostering</span></p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">1 hour ago</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-                <div className="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">TP</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Course Template Published</span> <span className="text-slate-500">Safeguarding Level 2</span></p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">3 hours ago</p>
-                </div>
-              </div>
+              )) : (
+                <div className="py-4 text-center text-sm text-slate-500">No recent activity</div>
+              )}
             </div>
           </div>
         </div>

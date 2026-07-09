@@ -1,16 +1,31 @@
-import React, { useState } from "react";
-import { Search, UserPlus, MoreHorizontal, UserCog, Download } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, UserPlus, MoreHorizontal, UserCog, Download, Loader2 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
+import { apiClient } from "@/api/apiClient";
 
-const MOCK_LEARNERS = [
-  { id: "1", name: "Sarah Jenkins", email: "sarah@example.com", assigned: 8, completed: 6, compliance: "Compliant", certs: 4, cpd: 12, lastActive: "10 mins ago" },
-  { id: "2", name: "Michael Chang", email: "michael@example.com", assigned: 5, completed: 5, compliance: "Compliant", certs: 5, cpd: 15, lastActive: "1 hour ago" },
-  { id: "3", name: "David Miller", email: "david@example.com", assigned: 6, completed: 2, compliance: "Action Needed", certs: 1, cpd: 4, lastActive: "2 days ago" },
-  { id: "4", name: "Emma Watson", email: "emma@example.com", assigned: 4, completed: 1, compliance: "At Risk", certs: 0, cpd: 2, lastActive: "1 week ago" },
-];
-
-export default function Learners() {
+export default function Learners({ orgId }) {
   const [search, setSearch] = useState("");
+  const [learners, setLearners] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLearners = async () => {
+      try {
+        setLoading(true);
+        const params = { role: 'learner' };
+        if (orgId) {
+          params.organization_id = orgId;
+        }
+        const res = await apiClient.get('/users', { params });
+        setLearners(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch learners:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLearners();
+  }, [orgId]);
 
   return (
     <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
@@ -57,34 +72,45 @@ export default function Learners() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {MOCK_LEARNERS.map((l) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
+                    <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+                    Loading learners...
+                  </td>
+                </tr>
+              ) : learners.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
+                    No learners found.
+                  </td>
+                </tr>
+              ) : learners.map((l) => (
                 <tr key={l.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
-                        {l.name.split(' ').map(n=>n[0]).join('')}
+                        {l.full_name?.split(' ').map(n=>n[0]).join('') || 'U'}
                       </div>
-                      <span className="font-semibold text-slate-900">{l.name}</span>
+                      <span className="font-semibold text-slate-900">{l.full_name || 'User'}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{l.email}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="font-medium text-slate-900">{l.completed}</span>
+                    <span className="font-medium text-slate-900">0</span>
                     <span className="text-slate-400 mx-1">/</span>
-                    <span className="text-slate-500">{l.assigned}</span>
+                    <span className="text-slate-500">0</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                      l.compliance === 'Compliant' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      l.compliance === 'At Risk' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      'bg-red-50 text-red-700 border-red-200'
-                    } border`}>
-                      {l.compliance}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                      N/A
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center text-slate-600 font-medium">{l.certs}</td>
-                  <td className="px-4 py-3 text-center text-slate-600 font-medium">{l.cpd}h</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{l.lastActive}</td>
+                  <td className="px-4 py-3 text-center text-slate-600 font-medium">0</td>
+                  <td className="px-4 py-3 text-center text-slate-600 font-medium">0h</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">
+                    {l.last_login_at ? new Date(l.last_login_at).toLocaleDateString() : 'Never'}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <button className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors" title="Manage Learner">
                       <UserCog size={16} />

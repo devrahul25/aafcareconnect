@@ -1,5 +1,5 @@
 import { PrismaClient, UserStatus } from '@prisma/client';
-import { db } from '../../config/database';
+import { prisma as db } from '../../config/database';
 
 export class UsersRepository {
 
@@ -10,10 +10,11 @@ export class UsersRepository {
         organisation_id?: string;
         status?: UserStatus;
         search?: string;
+        role?: string;
         skip?: number;
         take?: number;
     } = {}) {
-        const { organisation_id, status, search, skip = 0, take = 50 } = filters;
+        const { organisation_id, status, search, role, skip = 0, take = 50 } = filters;
 
         const where: any = {};
         if (organisation_id) where.organization_id = organisation_id;
@@ -23,6 +24,16 @@ export class UsersRepository {
                 { email: { contains: search, mode: 'insensitive' } },
                 { full_name: { contains: search, mode: 'insensitive' } },
             ];
+        }
+        if (role) {
+            const roles = role.split(',').map(r => r.trim());
+            where.user_roles = {
+                some: {
+                    role: {
+                        name: { in: roles }
+                    }
+                }
+            };
         }
 
         const [users, total] = await Promise.all([
@@ -76,7 +87,7 @@ export class UsersRepository {
      * Approve a user
      */
     static async approveUser(userId: string, approvedBy: string, roleId?: string) {
-        return db.$transaction(async (tx) => {
+        return db.$transaction(async (tx: any) => {
             // Update user status
             const user = await tx.user.update({
                 where: { id: userId },
@@ -120,7 +131,7 @@ export class UsersRepository {
      * Update user role
      */
     static async updateUserRole(userId: string, roleId: string) {
-        return db.$transaction(async (tx) => {
+        return db.$transaction(async (tx: any) => {
             // Remove existing roles
             await tx.userRole.deleteMany({
                 where: { user_id: userId }

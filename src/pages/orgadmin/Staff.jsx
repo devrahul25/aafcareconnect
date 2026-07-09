@@ -1,16 +1,31 @@
-import React, { useState } from "react";
-import { Search, UserPlus, MoreHorizontal, UserCog } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, UserPlus, MoreHorizontal, UserCog, Loader2 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
+import { apiClient } from "@/api/apiClient";
 
-const MOCK_STAFF = [
-  { id: "1", name: "Alice Thompson", jobTitle: "Senior Social Worker", role: "Manager", email: "alice@eserve.com", compliance: 100, learners: 12, status: "Active" },
-  { id: "2", name: "Robert Lewis", jobTitle: "Training Coordinator", role: "Trainer", email: "robert@eserve.com", compliance: 95, learners: 45, status: "Active" },
-  { id: "3", name: "Sophie Clark", jobTitle: "HR Administrator", role: "Org Admin", email: "sophie@eserve.com", compliance: 100, learners: 0, status: "Active" },
-  { id: "4", name: "Marcus Johnson", jobTitle: "Support Worker", role: "Staff", email: "marcus@eserve.com", compliance: 65, learners: 3, status: "Suspended" },
-];
-
-export default function Staff() {
+export default function Staff({ orgId }) {
   const [search, setSearch] = useState("");
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        setLoading(true);
+        const params = { role: 'org_admin,manager,trainer' };
+        if (orgId) {
+          params.organization_id = orgId;
+        }
+        const res = await apiClient.get('/users', { params });
+        setStaff(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch staff:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStaff();
+  }, [orgId]);
 
   return (
     <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
@@ -52,33 +67,44 @@ export default function Staff() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {MOCK_STAFF.map((s) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
+                    <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+                    Loading staff...
+                  </td>
+                </tr>
+              ) : staff.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
+                    No staff found.
+                  </td>
+                </tr>
+              ) : staff.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
-                        {s.name.split(' ').map(n=>n[0]).join('')}
+                        {s.full_name?.split(' ').map(n=>n[0]).join('') || 'U'}
                       </div>
-                      <span className="font-semibold text-slate-900">{s.name}</span>
+                      <span className="font-semibold text-slate-900">{s.full_name || 'User'}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{s.jobTitle}</td>
+                  <td className="px-4 py-3 text-slate-600">N/A</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                      {s.role}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wider">
+                      {s.role_type?.replace(/_/g, ' ') || 'Staff'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{s.email}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`font-semibold ${s.compliance >= 90 ? 'text-emerald-600' : s.compliance >= 75 ? 'text-amber-600' : 'text-red-600'}`}>
-                      {s.compliance}%
-                    </span>
+                    <span className="font-semibold text-slate-400">0%</span>
                   </td>
-                  <td className="px-4 py-3 text-center font-medium text-slate-600">{s.learners}</td>
+                  <td className="px-4 py-3 text-center font-medium text-slate-600">0</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                      s.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
-                    } border`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
+                      s.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+                    }`}>
                       {s.status}
                     </span>
                   </td>

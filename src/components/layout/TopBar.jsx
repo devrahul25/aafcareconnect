@@ -65,7 +65,7 @@ export default function TopBar({ user, title, actions }) {
             </div>
             <div className="hidden sm:block">
               <p className="text-xs font-semibold text-slate-800 leading-tight">{user.full_name || "User"}</p>
-              <p className="text-[10px] text-slate-400 capitalize leading-tight">{user.role || "Admin"}</p>
+              <p className="text-[10px] text-slate-400 capitalize leading-tight">{user.role?.replace(/_/g, ' ') || "Admin"}</p>
             </div>
           </div>
         )}

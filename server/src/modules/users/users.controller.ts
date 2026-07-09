@@ -1,5 +1,4 @@
-import { Response } from 'express';
-import { AuthenticatedRequest } from '../auth/auth.middleware';
+import { Request, Response } from 'express';
 import { UsersService } from './users.service';
 import { UserStatus } from '@prisma/client';
 
@@ -8,13 +7,16 @@ export class UsersController {
     /**
      * Get all users with filters
      */
-    static async getUsers(req: AuthenticatedRequest, res: Response) {
+    static async getUsers(req: Request, res: Response) {
         try {
-            const { status, search, page, limit } = req.query;
-            const organisation_id = req.user?.organization_id;
+            const { status, search, page, limit, organization_id, role } = req.query;
+            
+            const isSuperAdmin = req.user?.user_roles?.some((ur: any) => ur.role?.name === 'super_admin');
+            const targetOrgId = isSuperAdmin ? (organization_id as string | undefined) : req.user?.organization_id;
 
             const result = await UsersService.getUsers({
-                organisation_id,
+                organisation_id: targetOrgId as string,
+                role: role as string,
                 status: status as UserStatus,
                 search: search as string,
                 page: page ? parseInt(page as string) : undefined,
@@ -37,7 +39,7 @@ export class UsersController {
     /**
      * Get pending approvals
      */
-    static async getPendingApprovals(req: AuthenticatedRequest, res: Response) {
+    static async getPendingApprovals(req: Request, res: Response) {
         try {
             const organisation_id = req.user?.organization_id;
             const users = await UsersService.getPendingApprovals(organisation_id);
@@ -57,13 +59,13 @@ export class UsersController {
     /**
      * Approve a user
      */
-    static async approveUser(req: AuthenticatedRequest, res: Response) {
+    static async approveUser(req: Request, res: Response) {
         try {
             const { userId } = req.params;
             const { role_id } = req.body;
-            const approvedBy = req.user!.id;
+            const approvedBy = req.user!.id as string;
 
-            const user = await UsersService.approveUser(userId, approvedBy, role_id);
+            const user = await UsersService.approveUser(userId as string, approvedBy, role_id as string);
 
             res.json({
                 success: true,
@@ -81,13 +83,13 @@ export class UsersController {
     /**
      * Reject a user
      */
-    static async rejectUser(req: AuthenticatedRequest, res: Response) {
+    static async rejectUser(req: Request, res: Response) {
         try {
             const { userId } = req.params;
             const { reason } = req.body;
-            const rejectedBy = req.user!.id;
+            const rejectedBy = req.user!.id as string;
 
-            const user = await UsersService.rejectUser(userId, rejectedBy, reason);
+            const user = await UsersService.rejectUser(userId as string, reason as string, rejectedBy);
 
             res.json({
                 success: true,
@@ -105,7 +107,7 @@ export class UsersController {
     /**
      * Update user role
      */
-    static async updateUserRole(req: AuthenticatedRequest, res: Response) {
+    static async updateUserRole(req: Request, res: Response) {
         try {
             const { userId } = req.params;
             const { role_id } = req.body;
@@ -118,7 +120,7 @@ export class UsersController {
                 });
             }
 
-            const user = await UsersService.updateUserRole(userId, role_id, requesterId);
+            const user = await UsersService.updateUserRole(userId as string, role_id, requesterId as string);
 
             res.json({
                 success: true,
@@ -136,10 +138,10 @@ export class UsersController {
     /**
      * Get user by ID
      */
-    static async getUser(req: AuthenticatedRequest, res: Response) {
+    static async getUser(req: Request, res: Response) {
         try {
             const { userId } = req.params;
-            const user = await UsersService.getUserById(userId);
+            const user = await UsersService.getUserById(userId as string);
 
             res.json({
                 success: true,
@@ -156,20 +158,20 @@ export class UsersController {
     /**
      * Update user status (suspend/activate)
      */
-    static async updateUserStatus(req: AuthenticatedRequest, res: Response) {
+    static async updateUserStatus(req: Request, res: Response) {
         try {
             const { userId } = req.params;
             const { status } = req.body;
-            const requesterId = req.user!.id;
+            const requesterId = req.user!.id as string;
 
-            if (!status || !Object.values(UserStatus).includes(status)) {
+            if (!status || !Object.values(UserStatus).includes(status as UserStatus)) {
                 return res.status(400).json({
                     success: false,
                     error: 'Valid status is required'
                 });
             }
 
-            const user = await UsersService.updateUserStatus(userId, status, requesterId);
+            const user = await UsersService.updateUserStatus(userId as string, status as UserStatus, requesterId);
 
             res.json({
                 success: true,

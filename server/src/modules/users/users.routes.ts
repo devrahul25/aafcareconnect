@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { UsersController } from './users.controller';
 import { requireAuth } from '../auth/auth.middleware';
-import { authorize } from '../../middleware/authorize';
+import { requirePermission } from '../auth/authorization.middleware';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
 
 const router = Router();
@@ -12,49 +12,49 @@ router.use(requireAuth);
 // Get all users (admin/org_manager only)
 router.get(
     '/',
-    authorize(['admin', 'org_manager']),
+    requirePermission('users', 'manage'),
     asyncHandler(UsersController.getUsers)
 );
 
 // Get pending approvals
 router.get(
     '/pending-approvals',
-    authorize(['admin', 'org_manager']),
+    requirePermission('users', 'manage'),
     asyncHandler(UsersController.getPendingApprovals)
 );
 
 // Get user by ID
 router.get(
     '/:userId',
-    authorize(['admin', 'org_manager']),
+    requirePermission('users', 'manage'),
     asyncHandler(UsersController.getUser)
 );
 
 // Approve user
 router.post(
     '/:userId/approve',
-    authorize(['admin', 'org_manager']),
+    requirePermission('users', 'manage'),
     asyncHandler(UsersController.approveUser)
 );
 
 // Reject user
 router.post(
     '/:userId/reject',
-    authorize(['admin', 'org_manager']),
+    requirePermission('users', 'manage'),
     asyncHandler(UsersController.rejectUser)
 );
 
 // Update user role
 router.patch(
     '/:userId/role',
-    authorize(['admin', 'org_manager']),
+    requirePermission('users', 'manage'),
     asyncHandler(UsersController.updateUserRole)
 );
 
 // Update user status (suspend/activate)
 router.patch(
     '/:userId/status',
-    authorize(['admin', 'org_manager']),
+    requirePermission('users', 'manage'),
     asyncHandler(UsersController.updateUserStatus)
 );
 

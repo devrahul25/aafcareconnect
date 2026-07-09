@@ -23,6 +23,25 @@ enum OrganizationStatus {
   TRIAL
 }
 
+enum SubscriptionPlan {
+  TRIAL
+  STANDARD
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIAL
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUALLY
+}
+
 enum UserStatus {
   PENDING_APPROVAL
   ACTIVE
@@ -96,66 +115,94 @@ enum SectionType {
 // ─── ORGANIZATIONS ────────────────────────────────────────────────────────────
 
 model Organization {
-  id              String             @id @default(uuid())
-  name            String
-  type            OrganizationType
-  logo_url        String?
-  address         String?
-  phone           String?
-  email           String?
-  website         String?
-  ofsted_number   String?
-  enabled_modules String[]           @default([])
-  status          OrganizationStatus @default(TRIAL)
-  created_at      DateTime           @default(now())
-  updated_at      DateTime           @updatedAt
-  deleted_at      DateTime?
+  id                  String             @id @default(uuid())
+  name                String
+  type                OrganizationType
+  logo_url            String?
+  address             String?
+  phone               String?
+  email               String?
+  website             String?
+  registration_number String?
+  ofsted_number       String?
+  city                String?
+  county              String?
+  country             String?
+  postcode            String?
+  enabled_modules     String[]           @default([])
+  status              OrganizationStatus @default(TRIAL)
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+  deleted_at          DateTime?
 
-  users      User[]
-  roles      Role[]
-  courses    Course[]
-  audit_logs AuditLog[]
+  users         User[]
+  roles         Role[]
+  courses       Course[]
+  audit_logs    AuditLog[]
+  subscriptions Subscription[]
 
   @@map("organizations")
+}
+
+// ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id              String             @id @default(uuid())
+  organization_id String
+  plan            SubscriptionPlan   @default(STANDARD)
+  status          SubscriptionStatus @default(ACTIVE)
+  billing_cycle   BillingCycle       @default(MONTHLY)
+  max_learners    Int                @default(50)
+  max_staff       Int                @default(10)
+  storage_limit   Int                @default(5) // in GB
+  start_date      DateTime           @default(now())
+  renewal_date    DateTime?
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
 }
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
 
 model User {
-  id              String     @id @default(uuid())
-  firebase_uid    String     @unique
-  email           String     @unique
-  full_name       String?
-  phone           String?
-  avatar_url      String?
-  organization_id String
-  status          UserStatus @default(PENDING_APPROVAL)
-  session_version Int        @default(1)
-  last_login_at   DateTime?
-  email_verified  Boolean    @default(false)
-  approved_by     String?
-  approved_at     DateTime?
+  id               String     @id @default(uuid())
+  firebase_uid     String     @unique
+  email            String     @unique
+  password_hash    String?
+  full_name        String?
+  phone            String?
+  avatar_url       String?
+  organization_id  String
+  status           UserStatus @default(PENDING_APPROVAL)
+  session_version  Int        @default(1)
+  last_login_at    DateTime?
+  email_verified   Boolean    @default(false)
+  approved_by      String?
+  approved_at      DateTime?
   rejection_reason String?
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
-  deleted_at      DateTime?
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+  deleted_at       DateTime?
 
-  organization               Organization        @relation(fields: [organization_id], references: [id], onDelete: Restrict)
-  approver                   User?               @relation("UserApprovals", fields: [approved_by], references: [id])
-  approved_users             User[]              @relation("UserApprovals")
-  user_roles                 UserRole[]
-  user_permissions           UserPermission[]
-  verification_tokens        VerificationToken[]
-  user_sessions              UserSession[]
-  audit_logs                 AuditLog[]
-  course_enrolments          CourseEnrolment[]
-  compliance_assigned        ComplianceRecord[]  @relation("ComplianceAssignedTo")
-  compliance_as_carer        ComplianceRecord[]  @relation("ComplianceCarer")
-  cpd_certificates           CPDCertificate[]
-  foster_carer_profile       FosterCarer?
-  workforce_member_profile   WorkforceMember?
-  supervised_carers          FosterCarer[]       @relation("SSWCarers")
-  placements_as_ssw          Placement[]
+  organization             Organization        @relation(fields: [organization_id], references: [id], onDelete: Restrict)
+  approver                 User?               @relation("UserApprovals", fields: [approved_by], references: [id])
+  approved_users           User[]              @relation("UserApprovals")
+  user_roles               UserRole[]
+  user_permissions         UserPermission[]
+  verification_tokens      VerificationToken[]
+  user_sessions            UserSession[]
+  audit_logs               AuditLog[]
+  course_enrolments        CourseEnrolment[]
+  compliance_assigned      ComplianceRecord[]  @relation("ComplianceAssignedTo")
+  compliance_as_carer      ComplianceRecord[]  @relation("ComplianceCarer")
+  cpd_certificates         CPDCertificate[]
+  foster_carer_profile     FosterCarer?
+  workforce_member_profile WorkforceMember?
+  supervised_carers        FosterCarer[]       @relation("SSWCarers")
+  placements_as_ssw        Placement[]
 
   @@index([organization_id])
   @@index([organization_id, status])
@@ -233,28 +280,40 @@ model UserPermission {
 // ─── COURSES ──────────────────────────────────────────────────────────────────
 
 model Course {
-  id                  String       @id @default(uuid())
-  organization_id     String
-  title               String
-  description         String?
-  category            String
-  level               CourseLevel  @default(FOUNDATION)
-  duration_minutes    Int?
-  thumbnail_url       String?
-  pass_mark           Int?
-  certificate_enabled Boolean      @default(true)
-  allow_retake        Boolean      @default(true)
-  status              CourseStatus @default(DRAFT)
-  mandatory           Boolean      @default(false)
-  target_roles        String[]     @default([])
-  sort_order          Int          @default(0)
-  created_at          DateTime     @default(now())
-  updated_at          DateTime     @updatedAt
-  deleted_at          DateTime?
-  created_by          String?
-  updated_by          String?
+  id               String      @id @default(uuid())
+  organization_id  String?
+  title            String
+  description      String?
+  category         String
+  level            CourseLevel @default(FOUNDATION)
+  duration_minutes Int?
+  thumbnail_url    String?
+  pass_mark        Int?
 
-  organization Organization      @relation(fields: [organization_id], references: [id], onDelete: Restrict)
+  // Template & Versioning fields
+  is_template        Boolean @default(false)
+  parent_template_id String?
+  version            String  @default("1.0")
+
+  // Certificate fields
+  certificate_enabled Boolean @default(true)
+  certificate_title   String?
+  cpd_hours           Float?
+  expiry_months       Int?
+  auto_issue          Boolean @default(true)
+
+  allow_retake Boolean      @default(true)
+  status       CourseStatus @default(DRAFT)
+  mandatory    Boolean      @default(false)
+  target_roles String[]     @default([])
+  sort_order   Int          @default(0)
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+  deleted_at   DateTime?
+  created_by   String?
+  updated_by   String?
+
+  organization Organization?     @relation(fields: [organization_id], references: [id], onDelete: Restrict)
   sections     CourseSection[]
   enrolments   CourseEnrolment[]
 
@@ -268,7 +327,7 @@ model Course {
 
 model CourseSection {
   id              String      @id @default(uuid())
-  organization_id String
+  organization_id String?
   course_id       String
   title           String
   type            SectionType
@@ -292,7 +351,7 @@ model CourseSection {
 
 model Video {
   id              String   @id @default(uuid())
-  organization_id String
+  organization_id String?
   section_id      String
   title           String
   s3_key          String
@@ -315,7 +374,7 @@ model Video {
 
 model Document {
   id              String   @id @default(uuid())
-  organization_id String
+  organization_id String?
   section_id      String
   title           String
   s3_key          String
@@ -336,7 +395,7 @@ model Document {
 
 model RichTextLesson {
   id              String   @id @default(uuid())
-  organization_id String
+  organization_id String?
   section_id      String
   title           String
   content         Json // HTML or structured JSON content
@@ -355,7 +414,7 @@ model RichTextLesson {
 
 model Quiz {
   id              String   @id @default(uuid())
-  organization_id String
+  organization_id String?
   section_id      String
   title           String
   pass_mark       Int      @default(80)
@@ -374,7 +433,7 @@ model Quiz {
 
 model QuizQuestion {
   id              String   @id @default(uuid())
-  organization_id String
+  organization_id String?
   quiz_id         String
   question        String
   explanation     String?
@@ -392,7 +451,7 @@ model QuizQuestion {
 
 model QuizAnswer {
   id              String  @id @default(uuid())
-  organization_id String
+  organization_id String?
   question_id     String
   text            String
   is_correct      Boolean @default(false)
@@ -428,21 +487,21 @@ model VerificationToken {
 }
 
 model UserSession {
-  id                 String               @id @default(uuid())
+  id                 String                @id @default(uuid())
   user_id            String
-  family_id          String               // Ties rotated sessions together
-  parent_session_id  String?              // Previous session in the chain
-  refresh_token_hash String               @unique
-  platform           SessionPlatform      @default(WEB)
+  family_id          String // Ties rotated sessions together
+  parent_session_id  String? // Previous session in the chain
+  refresh_token_hash String                @unique
+  platform           SessionPlatform       @default(WEB)
   device_name        String?
   browser            String?
   operating_system   String?
   ip_address         String?
   country            String?
   city               String?
-  created_at         DateTime             @default(now())
-  last_used_at       DateTime             @default(now())
-  last_seen_at       DateTime             @default(now())
+  created_at         DateTime              @default(now())
+  last_used_at       DateTime              @default(now())
+  last_seen_at       DateTime              @default(now())
   expires_at         DateTime
   revoked_at         DateTime?
   revoked_reason     SessionRevokedReason?
@@ -483,18 +542,18 @@ enum EnrolmentStatus {
 }
 
 model CourseEnrolment {
-  id               String           @id @default(uuid())
+  id               String          @id @default(uuid())
   organization_id  String
   course_id        String
   user_id          String
-  status           EnrolmentStatus  @default(ENROLLED)
-  progress_percent Int              @default(0)
+  status           EnrolmentStatus @default(ENROLLED)
+  progress_percent Int             @default(0)
   score            Int?
-  enrolled_date    DateTime         @default(now())
+  enrolled_date    DateTime        @default(now())
   completed_date   DateTime?
   certificate_url  String?
-  created_at       DateTime         @default(now())
-  updated_at       DateTime         @updatedAt
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
 
   course Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -608,28 +667,28 @@ enum CarerStatus {
 }
 
 model FosterCarer {
-  id                   String              @id @default(uuid())
-  organization_id      String
-  user_id              String?             @unique
-  full_name            String
-  email                String
-  phone                String?
-  ssw_id               String?
-  address              String?
-  approval_date        DateTime?
-  approval_category    String?
-  max_placements       Int?
-  current_placements   Int                 @default(0)
-  annual_review_due    DateTime?
-  training_compliance  TrainingCompliance  @default(PARTIAL)
-  status               CarerStatus         @default(ACTIVE)
-  profile_photo_url    String?
-  created_at           DateTime            @default(now())
-  updated_at           DateTime            @updatedAt
+  id                  String             @id @default(uuid())
+  organization_id     String
+  user_id             String?            @unique
+  full_name           String
+  email               String
+  phone               String?
+  ssw_id              String?
+  address             String?
+  approval_date       DateTime?
+  approval_category   String?
+  max_placements      Int?
+  current_placements  Int                @default(0)
+  annual_review_due   DateTime?
+  training_compliance TrainingCompliance @default(PARTIAL)
+  status              CarerStatus        @default(ACTIVE)
+  profile_photo_url   String?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
 
-  user             User?       @relation(fields: [user_id], references: [id], onDelete: SetNull)
-  supervising_ssw  User?       @relation("SSWCarers", fields: [ssw_id], references: [id], onDelete: SetNull)
-  placements       Placement[]
+  user            User?       @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  supervising_ssw User?       @relation("SSWCarers", fields: [ssw_id], references: [id], onDelete: SetNull)
+  placements      Placement[]
 
   @@index([organization_id])
   @@index([status])
@@ -705,21 +764,21 @@ enum PlacementStatus {
 }
 
 model Placement {
-  id                 String          @id @default(uuid())
-  organization_id    String
-  child_name         String
-  child_dob          DateTime?
-  carer_id           String
-  ssw_id             String?
-  referral_source    String?
-  placement_start    DateTime?
-  placement_end      DateTime?
-  placement_type     PlacementType
-  status             PlacementStatus @default(REFERRAL)
-  notes              String?
-  needs_description  String?
-  created_at         DateTime        @default(now())
-  updated_at         DateTime        @updatedAt
+  id                String          @id @default(uuid())
+  organization_id   String
+  child_name        String
+  child_dob         DateTime?
+  carer_id          String
+  ssw_id            String?
+  referral_source   String?
+  placement_start   DateTime?
+  placement_end     DateTime?
+  placement_type    PlacementType
+  status            PlacementStatus @default(REFERRAL)
+  notes             String?
+  needs_description String?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
 
   carer FosterCarer @relation(fields: [carer_id], references: [id], onDelete: Cascade)
   ssw   User?       @relation(fields: [ssw_id], references: [id], onDelete: SetNull)

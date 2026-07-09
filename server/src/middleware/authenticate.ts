@@ -22,6 +22,22 @@ export const authenticate = asyncHandler(
     const idToken = authHeader.split('Bearer ')[1];
 
     try {
+      // Mock Token Support for Prototype/Local Dev
+      if (
+        idToken === 'mock-super-admin-token' ||
+        idToken === 'mock-org-admin-token' ||
+        idToken === 'mock-manager-token' ||
+        idToken === 'mock-trainer-token' ||
+        idToken === 'mock-learner-token'
+      ) {
+        req.user = {
+          id: 'mock-user-id',
+          email: 'mock@eserve.org.uk',
+          status: 'ACTIVE'
+        };
+        return next();
+      }
+
       // 1. Verify token with Firebase (enforce revocation check)
       const decodedToken = await firebaseAuth.verifyIdToken(idToken, true);
       const { uid } = decodedToken;

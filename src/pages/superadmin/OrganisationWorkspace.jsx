@@ -1,14 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, Link, useParams } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { Building2, Users, BookOpen, CheckCircle2, Award, PieChart, CreditCard, Settings, ChevronLeft } from "lucide-react";
 
-// Import existing Org Admin views to reuse
 import OrgStaff from "../orgadmin/Staff";
 import OrgLearners from "../orgadmin/Learners";
 import OrgSettings from "../orgadmin/OrganisationSettings";
-// Note: Some of these might need slight adjustments to accept orgId prop if they fetch data
-// But for mock frontend, they will just render identically.
+import { apiClient } from "@/api/apiClient";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: Building2 },
@@ -25,22 +23,75 @@ const TABS = [
 export default function OrganisationWorkspace() {
   const { orgId } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // In a real app, we would fetch the org details based on orgId.
-  const orgName = orgId === "1" ? "Eserve Social Care" : 
-                  orgId === "2" ? "Horizon Fostering" : 
-                  "Oakwood Care Homes";
+  useEffect(() => {
+    const fetchOrgMetrics = async () => {
+      try {
+        setLoading(true);
+        const res = await apiClient.get(`/dashboard/organization/${orgId}`);
+        setMetrics(res.data.data);
+      } catch (err) {
+        console.error("Failed to fetch organization metrics:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrgMetrics();
+  }, [orgId]);
+
+  const orgName = metrics?.organization?.name || "Loading Organization...";
+  const subscriptionStatus = metrics?.organization?.subscriptions?.[0]?.status || "UNKNOWN";
 
   const renderTabContent = () => {
+    if (loading) {
+      return <div className="p-12 text-center text-slate-500">Loading organization data...</div>;
+    }
+
     switch(activeTab) {
       case "overview":
-        return <div className="p-6 text-center text-slate-500">Overview Dashboard (Reuses Org Dashboard components)</div>;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-600">Active Learners</h3>
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><Users size={16}/></div>
+              </div>
+              <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.activeLearners || 0}</p>
+            </div>
+            
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-600">Active Staff</h3>
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><Building2 size={16}/></div>
+              </div>
+              <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.activeStaff || 0}</p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-600">Compliance</h3>
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><CheckCircle2 size={16}/></div>
+              </div>
+              <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.complianceScore || 0}%</p>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-slate-600">Course Completions</h3>
+                <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center text-violet-600"><BookOpen size={16}/></div>
+              </div>
+              <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.courseCompletions || 0}</p>
+            </div>
+          </div>
+        );
       case "staff":
-        return <OrgStaff />;
+        return <OrgStaff orgId={orgId} />;
       case "learners":
-        return <OrgLearners />;
+        return <OrgLearners orgId={orgId} />;
       case "settings":
-        return <OrgSettings />;
+        return <OrgSettings orgId={orgId} />;
       default:
         return (
           <div className="p-12 flex flex-col items-center justify-center text-slate-500 bg-white rounded-xl border border-slate-200 shadow-sm mt-6">
@@ -63,8 +114,12 @@ export default function OrganisationWorkspace() {
           subtitle="Super Admin Organisation Workspace"
           actions={
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md">
-                Active Subscription
+              <span className={`px-2.5 py-1 text-xs font-bold border rounded-md uppercase tracking-wider ${
+                subscriptionStatus === 'ACTIVE' 
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                  : 'bg-red-50 text-red-700 border-red-200'
+              }`}>
+                {subscriptionStatus}
               </span>
             </div>
           }

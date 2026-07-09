@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth.middleware';
 import { authorizationService } from './authorization.service';
 
@@ -7,9 +7,9 @@ import { authorizationService } from './authorization.service';
  * MUST be registered after `requireAuth`.
  */
 export const requirePermission = (resource: string, action: string) => {
-  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const isAllowed = await authorizationService.can(req, resource, action);
+      const isAllowed = await authorizationService.can(req as unknown as AuthenticatedRequest, resource, action);
       
       if (!isAllowed) {
         return res.status(403).json({ 

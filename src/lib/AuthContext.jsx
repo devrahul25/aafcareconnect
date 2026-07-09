@@ -53,7 +53,7 @@ function mapPayloadToUser(payload) {
     full_name: payload.full_name || payload.name || '',
     role: role,
     role_type: role,
-    organization_id: payload.organization_id || null,
+    organization_id: payload.org || payload.organization_id || null,
     session_id: payload.sid || null,
     permissions: payload.permissions || [],
   };
@@ -165,7 +165,25 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback((accessToken, refreshToken, userData = null) => {
     tokenStorage.setTokens(accessToken, refreshToken);
     const payload = decodeJwtPayload(accessToken);
-    const resolvedUser = userData || (payload ? mapPayloadToUser(payload) : null);
+    let resolvedUser = null;
+    
+    if (userData) {
+      // Normalize backend API response to match UI expectations
+      const role = userData.role_type || userData.role || (payload ? payload.role : 'learner');
+      resolvedUser = {
+        id: userData.id,
+        email: userData.email,
+        full_name: userData.full_name || '',
+        role: role,
+        role_type: role,
+        organization_id: userData.organisation_id || userData.organization_id || null,
+        session_id: payload ? payload.sid : null,
+        permissions: userData.permissions || [],
+      };
+    } else if (payload) {
+      resolvedUser = mapPayloadToUser(payload);
+    }
+
     setUser(resolvedUser);
     setIsAuthenticated(true);
   }, []);

@@ -1,26 +1,36 @@
-import React, { useState } from "react";
-import { Search, Filter, MoreHorizontal, UserCog } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Filter, MoreHorizontal, UserCog, Loader2 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
-import { DEMO_PLATFORM_USERS } from "@/lib/platformStore";
+import { apiClient } from "@/api/apiClient";
+import { formatDistanceToNow } from "date-fns";
 
 export default function PlatformUsers() {
   const [search, setSearch] = useState("");
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const users = [
-    { id: "1", name: "Sarah Jenkins", org: "Eserve Social Care", role: "Manager", email: "sarah@eserve.com", status: "Active", lastLogin: "10 mins ago" },
-    { id: "2", name: "Michael Chang", org: "Eserve Social Care", role: "Trainer", email: "michael@eserve.com", status: "Active", lastLogin: "1 hour ago" },
-    { id: "3", name: "Emma Watson", org: "Horizon Fostering", role: "Org Admin", email: "emma@horizon.com", status: "Active", lastLogin: "3 hours ago" },
-    { id: "4", name: "David Miller", org: "Oakwood Care Homes", role: "Learner", email: "david@oakwood.com", status: "Suspended", lastLogin: "1 month ago" },
-    ...DEMO_PLATFORM_USERS.slice(0, 4).map((u, i) => ({
-      id: `demo-${i}`,
-      name: u.name,
-      org: "Eserve Social Care",
-      role: "Learner",
-      email: u.email,
-      status: "Active",
-      lastLogin: "2 days ago"
-    }))
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        // By not sending organization_id or role, the super admin receives all users
+        const res = await apiClient.get('/users');
+        setUsers(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch platform users:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Filter based on local search
+  const filteredUsers = users.filter(user => 
+    search === "" || 
+    user.full_name?.toLowerCase().includes(search.toLowerCase()) || 
+    user.email?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
@@ -64,31 +74,48 @@ export default function PlatformUsers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {users.map((u) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
+                    Loading users...
+                  </td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
+                    No users found matching your search.
+                  </td>
+                </tr>
+              ) : filteredUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
-                        {u.name.split(' ').map(n=>n[0]).join('')}
+                        {u.full_name ? u.full_name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() : u.email.substring(0,2).toUpperCase()}
                       </div>
-                      <span className="font-semibold text-slate-900">{u.name}</span>
+                      <span className="font-semibold text-slate-900">{u.full_name || 'No Name'}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{u.org}</td>
+                  <td className="px-4 py-3 text-slate-600">{u.organization?.name || '-'}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                      {u.role}
+                      {u.user_roles?.[0]?.role?.name || 'User'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{u.email}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                      u.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+                      u.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                      u.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-red-50 text-red-700 border-red-200'
                     } border`}>
                       {u.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{u.lastLogin}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">
+                    {u.last_login_at ? formatDistanceToNow(new Date(u.last_login_at), { addSuffix: true }) : 'Never'}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button className="p-1.5 text-slate-400 hover:text-blue-600 rounded transition-colors" title="Edit User">

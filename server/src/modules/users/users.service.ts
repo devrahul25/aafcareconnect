@@ -10,6 +10,7 @@ export class UsersService {
         organisation_id?: string;
         status?: UserStatus;
         search?: string;
+        role?: string;
         page?: number;
         limit?: number;
     }) {

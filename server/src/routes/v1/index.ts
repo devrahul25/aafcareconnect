@@ -2,19 +2,25 @@ import { Router } from 'express';
 import { healthRoutes } from '../../modules/health/health.routes';
 import { authRoutes } from '../../modules/auth/auth.routes';
 import { coursesRoutes } from '../../modules/courses/courses.routes';
+import { templatesRoutes } from '../../modules/courses/templates.routes';
 import { enrolmentsRoutes } from '../../modules/courses/enrolments.routes';
 import { complianceRoutes } from '../../modules/compliance/compliance.routes';
 import { storageRoutes } from '../../modules/storage/storage.routes';
 import usersRoutes from '../../modules/users/users.routes';
+import { organizationsRoutes } from '../../modules/organizations/organizations.routes';
+import { dashboardRoutes } from '../../modules/dashboard/dashboard.routes';
 
 const router = Router();
 
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
+router.use('/templates', templatesRoutes);
 router.use('/courses', coursesRoutes);
 router.use('/course-enrolments', enrolmentsRoutes);
 router.use('/compliance-records', complianceRoutes);
 router.use('/storage', storageRoutes);
+router.use('/organizations', organizationsRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export const v1Routes = router;
