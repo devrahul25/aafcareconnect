@@ -9,6 +9,7 @@ import CourseInfoTab from "./CourseInfoTab";
 import CurriculumBuilder from "./CurriculumBuilder";
 import QuizBuilder from "./QuizBuilder";
 import CertificateSettings from "./CertificateSettings";
+import CourseSettingsTab from "./CourseSettingsTab";
 
 export default function CourseBuilder() {
   const { courseId } = useParams();
@@ -56,14 +57,17 @@ export default function CourseBuilder() {
     mutationFn: () => apiClient.post(`/templates/${courseId}/publish`),
     onSuccess: () => {
       toast({ title: "Success", description: "Template published platform-wide!" });
-      queryClient.invalidateQueries(['template', courseId]);
-      queryClient.invalidateQueries(['templates']);
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
       navigate('/superadmin/course-library');
     },
     onError: (error) => {
+      const errData = error.response?.data?.error;
+      const errorMsg = typeof errData === 'string' ? errData : errData?.message || "Failed to publish template";
+      
       toast({ 
         title: "Validation Error", 
-        description: error.response?.data?.error || "Failed to publish template", 
+        description: errorMsg, 
         variant: "destructive" 
       });
     }
@@ -85,7 +89,6 @@ export default function CourseBuilder() {
   const TABS = [
     { id: "info", label: "Course Info", icon: Layout },
     { id: "curriculum", label: "Curriculum", icon: BookOpen },
-    { id: "quiz", label: "Assessments", icon: HelpCircle },
     { id: "certificate", label: "Certificate", icon: Award },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -168,16 +171,11 @@ export default function CourseBuilder() {
             {activeTab === 'curriculum' && (
               <CurriculumBuilder course={courseData} setSaveStatus={setSaveStatus} />
             )}
-            {activeTab === 'quiz' && (
-              <QuizBuilder course={courseData} setSaveStatus={setSaveStatus} />
-            )}
             {activeTab === 'certificate' && (
               <CertificateSettings course={courseData} setSaveStatus={setSaveStatus} />
             )}
             {activeTab === 'settings' && (
-              <div className="card p-8 text-center text-slate-500">
-                Advanced settings coming soon...
-              </div>
+              <CourseSettingsTab course={courseData} setSaveStatus={setSaveStatus} />
             )}
           </div>
         </div>

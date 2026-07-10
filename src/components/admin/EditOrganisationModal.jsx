@@ -1,24 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Building2, Mail, Phone } from 'lucide-react';
-import { tokenStorage } from "@/api/apiClient";
+import { tokenStorage, apiClient } from "@/api/apiClient";
+import { useQuery } from '@tanstack/react-query';
 
 export default function EditOrganisationModal({ isOpen, onClose, org, onSave }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    assigned_template_ids: []
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Fetch course templates
+  const { data: templatesData, isLoading: isLoadingTemplates } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => apiClient.get('/templates').then(res => res.data),
+    enabled: isOpen
+  });
+  const templates = templatesData?.data || [];
+
   useEffect(() => {
     if (org) {
+      // Map existing courses back to template IDs (exclude archived if we don't want them checked by default)
+      // We check for ACTIVE/PUBLISHED status so we don't re-check archived templates.
+      const assignedIds = (org.courses || [])
+        .filter(c => c.parent_template_id && c.status !== 'ARCHIVED')
+        .map(c => c.parent_template_id);
+
       setFormData({
         name: org.name || '',
         email: org.email || org.users?.[0]?.email || '',
         phone: org.phone || '',
-        status: org.status || 'ACTIVE'
+        status: org.status || 'ACTIVE',
+        assigned_template_ids: assignedIds
       });
     }
   }, [org]);
@@ -141,6 +158,42 @@ export default function EditOrganisationModal({ isOpen, onClose, org, onSave }) 
                 <option value="TRIAL">Trial</option>
                 <option value="SUSPENDED">Suspended</option>
               </select>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Course Access</label>
+              <p className="text-xs text-slate-500 mb-3">Select which global course templates this organisation will have access to. Unchecking a previously assigned course will archive it for the organisation.</p>
+              
+              {isLoadingTemplates ? (
+                <div className="text-sm text-slate-500 py-2">Loading templates...</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2">
+                  {templates.map(template => (
+                    <label key={template.id} className="flex items-start gap-3 p-2 rounded-md hover:bg-slate-50 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        checked={formData.assigned_template_ids.includes(template.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData(prev => ({
+                            ...prev,
+                            assigned_template_ids: checked 
+                              ? [...prev.assigned_template_ids, template.id]
+                              : prev.assigned_template_ids.filter(id => id !== template.id)
+                          }));
+                        }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm text-slate-700">{template.title}</p>
+                      </div>
+                    </label>
+                  ))}
+                  {templates.length === 0 && (
+                    <p className="text-sm text-slate-500 italic">No global templates available.</p>
+                  )}
+                </div>
+              )}
             </div>
           </form>
         </div>

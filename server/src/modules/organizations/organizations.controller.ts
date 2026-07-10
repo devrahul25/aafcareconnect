@@ -3,6 +3,54 @@ import { prisma } from '../../config/database';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { firebaseAuth } from '../../config/firebase';
+import { CoursesService } from '../courses/courses.service';
+
+const coursesService = new CoursesService();
+
+// --- Organization Types ---
+
+export const getOrganizationTypes = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const types = await prisma.organizationTypeOption.findMany({
+      orderBy: { created_at: 'asc' }
+    });
+    res.status(200).json({ success: true, data: types });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const addOrganizationType = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      res.status(400).json({ success: false, error: "Name is required" });
+      return;
+    }
+    const newType = await prisma.organizationTypeOption.create({
+      data: { name }
+    });
+    res.status(201).json({ success: true, data: newType });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      res.status(400).json({ success: false, error: "This organization type already exists" });
+    } else {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+};
+
+export const deleteOrganizationType = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await prisma.organizationTypeOption.delete({
+      where: { id: id as string }
+    });
+    res.status(204).send();
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 
 export const createOrganization = async (req: Request, res: Response): Promise<void> => {
   const {
@@ -10,7 +58,8 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
     address, city, county, country, postcode,
     registration_number, ofsted_number,
     admin_name, admin_email, admin_phone, admin_job_title,
-    plan, trial_or_paid, max_learners, max_staff
+    plan, trial_or_paid, max_learners, max_staff,
+    assigned_template_ids = []
   } = req.body;
 
   try {
@@ -109,6 +158,22 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
       return { organization, user, subscription };
     });
 
+    // 4. Assign selected course templates to the new organization
+    if (assigned_template_ids && assigned_template_ids.length > 0) {
+      for (const templateId of assigned_template_ids) {
+        try {
+          await coursesService.assignTemplateToOrganization(
+            result.organization.id, 
+            templateId, 
+            result.user.id // Use the new org admin ID as the creator
+          );
+        } catch (err) {
+          console.error(`Failed to assign template ${templateId} to organization ${result.organization.id}`, err);
+          // Don't fail the whole request, continue assigning the rest
+        }
+      }
+    }
+
     let previewUrl = null;
     try {
       // 4. Send Welcome Email via Nodemailer (Ethereal for local dev)
@@ -188,6 +253,12 @@ export const listOrganizations = async (req: Request, res: Response): Promise<vo
         subscriptions: true,
         users: {
           take: 1, // Getting one user to act as the primary admin in the list view
+        },
+        courses: {
+          select: {
+            parent_template_id: true,
+            status: true
+          }
         }
       },
       orderBy: { created_at: 'desc' }
@@ -203,7 +274,7 @@ export const listOrganizations = async (req: Request, res: Response): Promise<vo
 export const updateOrganization = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, email, phone, status } = req.body;
+    const { name, email, phone, status, assigned_template_ids } = req.body;
 
     const organization = await prisma.organization.update({
       where: { id: id as string },
@@ -214,6 +285,55 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
         status,
       }
     });
+
+    if (Array.isArray(assigned_template_ids)) {
+      // Find existing assigned templates
+      const existingCourses = await prisma.course.findMany({
+        where: {
+          organization_id: id as string,
+          parent_template_id: { not: null }
+        }
+      });
+
+      const existingTemplateIds = existingCourses.map(c => c.parent_template_id!);
+
+      // Templates to add
+      const toAdd = assigned_template_ids.filter(tid => !existingTemplateIds.includes(tid));
+      
+      // Templates to remove/archive
+      const toRemove = existingTemplateIds.filter(tid => !assigned_template_ids.includes(tid));
+      const toKeep = existingTemplateIds.filter(tid => assigned_template_ids.includes(tid));
+
+      // 1. Add new
+      for (const templateId of toAdd) {
+        try {
+          // Find an admin user in the org to attribute creation
+          const orgAdmin = await prisma.user.findFirst({
+            where: { organization_id: id as string },
+            orderBy: { created_at: 'asc' }
+          });
+          await coursesService.assignTemplateToOrganization(id as string, templateId, orgAdmin?.id);
+        } catch (err) {
+          console.error(`Failed to assign template ${templateId}`, err);
+        }
+      }
+
+      // 2. Reactivate ones that were kept (in case they were previously archived)
+      for (const templateId of toKeep) {
+        await prisma.course.updateMany({
+          where: { organization_id: id as string, parent_template_id: templateId },
+          data: { status: 'PUBLISHED', deleted_at: null }
+        });
+      }
+
+      // 3. Archive removed ones
+      for (const templateId of toRemove) {
+        await prisma.course.updateMany({
+          where: { organization_id: id as string, parent_template_id: templateId },
+          data: { status: 'ARCHIVED' }
+        });
+      }
+    }
 
     res.status(200).json({ success: true, data: organization });
   } catch (error: any) {

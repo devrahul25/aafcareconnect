@@ -1,13 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Plus, GripVertical, FileText, Video, HelpCircle, File, Trash2, Edit2, LayoutTemplate } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import { toast } from "@/components/ui/use-toast";
 
+import VideoModuleUI from "./Modules/VideoModuleUI";
+import DocumentModuleUI from "./Modules/DocumentModuleUI";
+import QuizModuleUI from "./Modules/QuizModuleUI";
+import AssignmentModuleUI from "./Modules/AssignmentModuleUI";
+
 export default function CurriculumBuilder({ course, setSaveStatus }) {
   const queryClient = useQueryClient();
   const [sections, setSections] = useState(course.sections || []);
+
+  useEffect(() => {
+    setSections(course.sections || []);
+  }, [course.sections]);
 
   const reorderMutation = useMutation({
     mutationFn: (newSections) => apiClient.post(`/templates/${course.id}/sections/reorder`, {
@@ -16,22 +25,22 @@ export default function CurriculumBuilder({ course, setSaveStatus }) {
     onMutate: () => setSaveStatus("saving"),
     onSuccess: () => {
       setSaveStatus("saved");
-      queryClient.invalidateQueries(['template', course.id]);
+      queryClient.invalidateQueries({ queryKey: ['template', course.id] });
     },
     onError: () => setSaveStatus("error")
   });
 
   const addModuleMutation = useMutation({
-    mutationFn: () => apiClient.post(`/templates/${course.id}/sections`, {
-      title: "New Module",
-      type: "MODULE"
+    mutationFn: (type) => apiClient.post(`/templates/${course.id}/sections`, {
+      title: `New ${type.charAt(0) + type.slice(1).toLowerCase().replace('_', ' ')}`,
+      type: type
     }).then(res => res.data),
-    onSuccess: () => queryClient.invalidateQueries(['template', course.id])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', course.id] })
   });
 
   const deleteModuleMutation = useMutation({
     mutationFn: (sectionId) => apiClient.delete(`/templates/${course.id}/sections/${sectionId}`),
-    onSuccess: () => queryClient.invalidateQueries(['template', course.id])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', course.id] })
   });
 
   const handleDragEnd = (result) => {
@@ -43,8 +52,8 @@ export default function CurriculumBuilder({ course, setSaveStatus }) {
     reorderMutation.mutate(items);
   };
 
-  const handleAddModule = () => {
-    addModuleMutation.mutate();
+  const handleAddModule = (type) => {
+    addModuleMutation.mutate(type);
   };
 
   const handleDeleteModule = (id) => {
@@ -60,13 +69,36 @@ export default function CurriculumBuilder({ course, setSaveStatus }) {
           <h2 className="text-xl font-bold text-slate-900">Curriculum</h2>
           <p className="text-sm text-slate-500 mt-1">Organize your course into modules and lessons.</p>
         </div>
-        <button 
-          onClick={handleAddModule}
-          disabled={addModuleMutation.isPending}
-          className="h-9 px-4 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus size={16} /> Add Module
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => handleAddModule('VIDEO')}
+            disabled={addModuleMutation.isPending}
+            className="h-9 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Video size={14} /> Video
+          </button>
+          <button 
+            onClick={() => handleAddModule('DOCUMENT')}
+            disabled={addModuleMutation.isPending}
+            className="h-9 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <FileText size={14} /> Document
+          </button>
+          <button 
+            onClick={() => handleAddModule('QUIZ')}
+            disabled={addModuleMutation.isPending}
+            className="h-9 px-3 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <HelpCircle size={14} /> Quiz
+          </button>
+          <button 
+            onClick={() => handleAddModule('RICH_TEXT')}
+            disabled={addModuleMutation.isPending}
+            className="h-9 px-3 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Plus size={14} /> Assignment
+          </button>
+        </div>
       </div>
 
       {sections.length === 0 ? (
@@ -76,12 +108,20 @@ export default function CurriculumBuilder({ course, setSaveStatus }) {
           </div>
           <h3 className="text-base font-semibold text-slate-900">No curriculum yet</h3>
           <p className="text-sm text-slate-500 mt-1 max-w-sm mb-6">Start building your course by adding modules, then fill them with lessons, videos, and quizzes.</p>
-          <button 
-            onClick={handleAddModule}
-            className="h-9 px-4 text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center gap-2 transition-colors"
-          >
-            <Plus size={16} /> Add First Module
-          </button>
+          <div className="flex gap-2 justify-center">
+            <button onClick={() => handleAddModule('VIDEO')} className="h-9 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2 transition-colors">
+              <Video size={16} /> Add Video
+            </button>
+            <button onClick={() => handleAddModule('DOCUMENT')} className="h-9 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2 transition-colors">
+              <FileText size={16} /> Add Document
+            </button>
+            <button onClick={() => handleAddModule('QUIZ')} className="h-9 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2 transition-colors">
+              <HelpCircle size={16} /> Add Quiz
+            </button>
+            <button onClick={() => handleAddModule('RICH_TEXT')} className="h-9 px-4 text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center gap-2 transition-colors">
+              <Plus size={16} /> Add Assignment
+            </button>
+          </div>
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -124,36 +164,11 @@ export default function CurriculumBuilder({ course, setSaveStatus }) {
                         </div>
 
                         {/* Module Content */}
-                        <div className="p-4 bg-white">
-                          <div className="space-y-2">
-                            {/* Static mapping of items for MVP, would normally be dynamic sub-draggables */}
-                            {(section.videos?.length || section.rich_text_lessons?.length || section.documents?.length || section.quizzes?.length) ? (
-                              <div className="text-sm text-slate-500 py-4 text-center border-2 border-dashed border-slate-100 rounded-lg">
-                                Content exists in database but rendering list is mocked for UI building.
-                              </div>
-                            ) : (
-                              <div className="py-6 text-center text-sm text-slate-400 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">
-                                This module is empty. Add lessons below.
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Add Content Buttons */}
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <button className="h-8 px-3 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-blue-600 flex items-center gap-1.5 transition-colors">
-                              <Video size={14} /> Add Video
-                            </button>
-                            <button className="h-8 px-3 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-blue-600 flex items-center gap-1.5 transition-colors">
-                              <FileText size={14} /> Add Rich Text
-                            </button>
-                            <button className="h-8 px-3 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-blue-600 flex items-center gap-1.5 transition-colors">
-                              <File size={14} /> Add Document
-                            </button>
-                            <button className="h-8 px-3 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-blue-600 flex items-center gap-1.5 transition-colors">
-                              <HelpCircle size={14} /> Add Quiz
-                            </button>
-                          </div>
-                        </div>
+                        {/* Module Content Specific UI */}
+                        {section.type === 'VIDEO' && <VideoModuleUI section={section} courseId={course.id} />}
+                        {section.type === 'DOCUMENT' && <DocumentModuleUI section={section} courseId={course.id} />}
+                        {section.type === 'QUIZ' && <QuizModuleUI section={section} courseId={course.id} />}
+                        {section.type === 'RICH_TEXT' && <AssignmentModuleUI section={section} courseId={course.id} />}
                       </div>
                     )}
                   </Draggable>

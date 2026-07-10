@@ -97,8 +97,12 @@ export default function Dashboard() {
         setActivity([]);
       })
       .catch(() => {
-        setMetrics(getDemoMetrics());
-        setActivity(buildDemoActivity());
+        // Fallback to empty metrics instead of demo data
+        setMetrics({
+          total: 0, fullyCompliant: 0, expiring: 0, expired: 0, 
+          highRisk: 0, avgCompliance: 0, totalCpdHours: 0
+        });
+        setActivity([]);
       })
       .finally(() => setLoading(false));
   }, [organisationId, isSuperAdmin]);

@@ -3,6 +3,7 @@ import { asyncHandler } from '../../shared/utils/asyncHandler';
 import { sendResponse } from '../../shared/utils/response';
 import { coursesService } from './courses.service';
 import { AppError } from '../../shared/errors/AppError';
+import { prisma } from '../../config/database';
 
 // For templates, we pass `null` as the organizationId to the existing coursesService, 
 // which has been typed to accept `string | null`.
@@ -10,6 +11,14 @@ import { AppError } from '../../shared/errors/AppError';
 export const listTemplates = asyncHandler(async (req: Request, res: Response) => {
   const courses = await coursesService.getCourses(null, req.query);
   sendResponse(res, 200, courses);
+});
+
+export const getTemplate = asyncHandler(async (req: Request, res: Response) => {
+  const course = await coursesService.getCourseById(null, req.params.id as string);
+  if (!course) {
+    throw new AppError('Template not found', 404, 'NOT_FOUND');
+  }
+  sendResponse(res, 200, course);
 });
 
 export const createTemplate = asyncHandler(async (req: Request, res: Response) => {
@@ -26,6 +35,11 @@ export const updateTemplate = asyncHandler(async (req: Request, res: Response) =
 export const deleteTemplate = asyncHandler(async (req: Request, res: Response) => {
   await coursesService.deleteCourse(null, req.params.id as string);
   sendResponse(res, 204, null);
+});
+
+export const duplicateTemplate = asyncHandler(async (req: Request, res: Response) => {
+  const course = await coursesService.duplicateCourse(null, req.params.id as string, req.user?.id);
+  sendResponse(res, 201, course);
 });
 
 export const publishTemplate = asyncHandler(async (req: Request, res: Response) => {
@@ -94,6 +108,37 @@ export const updateDocument = asyncHandler(async (req: Request, res: Response) =
 
 export const deleteDocument = asyncHandler(async (req: Request, res: Response) => {
   await coursesService.deleteDocument(null, req.params.courseId as string, req.params.sectionId as string, req.params.documentId as string);
+  sendResponse(res, 204, null);
+});
+
+// Category Controllers
+export const getCourseCategories = asyncHandler(async (req: Request, res: Response) => {
+  const categories = await prisma.courseCategoryOption.findMany({
+    orderBy: { name: 'asc' }
+  });
+  sendResponse(res, 200, categories);
+});
+
+export const addCourseCategory = asyncHandler(async (req: Request, res: Response) => {
+  const { name } = req.body;
+  if (!name) {
+    throw new AppError('Category name is required', 400, 'VALIDATION_ERROR');
+  }
+
+  const existing = await prisma.courseCategoryOption.findUnique({ where: { name } });
+  if (existing) {
+    throw new AppError('Category already exists', 400, 'VALIDATION_ERROR');
+  }
+
+  const category = await prisma.courseCategoryOption.create({
+    data: { name }
+  });
+  sendResponse(res, 201, category);
+});
+
+export const deleteCourseCategory = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await prisma.courseCategoryOption.delete({ where: { id: id as string } });
   sendResponse(res, 204, null);
 });
 

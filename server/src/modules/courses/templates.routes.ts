@@ -10,11 +10,18 @@ const router = Router();
 // All template routes require authentication and SUPER_ADMIN global access to manage templates
 router.use(requireAuth, requirePermission('courses', 'manage'));
 
+// --- Category Routes ---
+router.get('/categories', controller.getCourseCategories);
+router.post('/categories', controller.addCourseCategory);
+router.delete('/categories/:id', controller.deleteCourseCategory);
+
 // --- Template Routes ---
 router.get('/', controller.listTemplates);
+router.get('/:id', controller.getTemplate);
 router.post('/', validate(validator.createCourseSchema), controller.createTemplate);
 router.patch('/:id', validate(validator.updateCourseSchema), controller.updateTemplate);
 router.delete('/:id', controller.deleteTemplate);
+router.post('/:id/duplicate', controller.duplicateTemplate);
 router.post('/:id/publish', controller.publishTemplate);
 
 // --- Section Routes ---

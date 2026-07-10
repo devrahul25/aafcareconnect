@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import debounce from "lodash/debounce";
@@ -6,12 +6,13 @@ import { UploadCloud, Image as ImageIcon } from "lucide-react";
 
 export default function CourseInfoTab({ course, setSaveStatus }) {
   const queryClient = useQueryClient();
+
   const [formData, setFormData] = useState({
     title: course.title || "",
-    category: course.category || "",
     description: course.description || "",
     thumbnail_url: course.thumbnail_url || "",
   });
+
 
   const updateMutation = useMutation({
     mutationFn: (data) => apiClient.patch(`/templates/${course.id}`, data),
@@ -26,6 +27,7 @@ export default function CourseInfoTab({ course, setSaveStatus }) {
       setSaveStatus("error");
     }
   });
+
 
   // Debounce the mutation call to prevent spamming the backend
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,8 +54,9 @@ export default function CourseInfoTab({ course, setSaveStatus }) {
     debouncedSave(newFormData);
   };
 
+
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in relative">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Course Information</h2>
         <p className="text-sm text-slate-500 mt-1">Provide the foundational details for your platform template.</p>
@@ -102,24 +105,6 @@ export default function CourseInfoTab({ course, setSaveStatus }) {
           />
         </div>
 
-        {/* Category */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-semibold text-slate-700">Category</label>
-          <select 
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all"
-          >
-            <option value="">Select a category...</option>
-            <option value="Health & Safety">Health & Safety</option>
-            <option value="Safeguarding">Safeguarding</option>
-            <option value="Clinical Skills">Clinical Skills</option>
-            <option value="Compliance & Legislation">Compliance & Legislation</option>
-            <option value="Leadership & Management">Leadership & Management</option>
-            <option value="General">General</option>
-          </select>
-        </div>
 
         {/* Description */}
         <div className="space-y-1.5">

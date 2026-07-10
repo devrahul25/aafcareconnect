@@ -33,6 +33,15 @@ export class CoursesService {
     return coursesRepository.delete(organizationId, id);
   }
 
+  async duplicateCourse(organizationId: string | null, id: string, userId?: string) {
+    await this.getCourseById(organizationId, id);
+    return coursesRepository.duplicate(organizationId, id, userId);
+  }
+
+  async assignTemplateToOrganization(orgId: string, templateId: string, userId?: string) {
+    return coursesRepository.assignTemplate(orgId, templateId, userId);
+  }
+
   // --- Section & Content Management ---
 
   async addSection(organizationId: string | null, courseId: string, data: any) {
@@ -194,7 +203,7 @@ export class CoursesService {
       return this.DEFAULT_CATEGORIES;
     }
     // Merge: DB values first, then any defaults not already present
-    const merged = [...new Set([...dbCategories, ...this.DEFAULT_CATEGORIES])];
+    const merged = Array.from(new Set([...dbCategories, ...this.DEFAULT_CATEGORIES]));
     return merged.sort();
   }
 

@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, ArrowLeft, Building2, UserCircle, CreditCard, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
-import { tokenStorage } from '@/api/apiClient';
+import { tokenStorage, apiClient } from '@/api/apiClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/components/ui/use-toast';
+import { Settings, Trash2 } from 'lucide-react';
 
 const STEPS = [
   { id: 1, title: "Organisation Info", icon: Building2 },
@@ -18,9 +21,43 @@ export default function CreateOrganisation() {
   const [submitStatus, setSubmitStatus] = useState("");
   const [createdData, setCreatedData] = useState(null);
 
+  // Manage Types Modal
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
+  const queryClient = useQueryClient();
+
+  const { data: orgTypesResponse, isLoading: isLoadingTypes } = useQuery({
+    queryKey: ['organization-types'],
+    queryFn: () => apiClient.get('/organizations/types').then(res => res.data)
+  });
+  const orgTypes = orgTypesResponse?.data || [];
+
+  const addTypeMutation = useMutation({
+    mutationFn: (name) => apiClient.post('/organizations/types', { name }),
+    onSuccess: () => {
+      setNewTypeName("");
+      queryClient.invalidateQueries(['organization-types']);
+      toast({ title: "Success", description: "Organisation type added." });
+    },
+    onError: (err) => {
+      toast({ title: "Error", description: err.response?.data?.error || "Failed to add type", variant: "destructive" });
+    }
+  });
+
+  const deleteTypeMutation = useMutation({
+    mutationFn: (id) => apiClient.delete(`/organizations/types/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['organization-types']);
+      toast({ title: "Deleted", description: "Organisation type removed." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete type.", variant: "destructive" });
+    }
+  });
+
   const [formData, setFormData] = useState({
     name: "",
-    type: "INDEPENDENT_FOSTERING_AGENCY",
+    type: "",
     email: "",
     phone: "",
     website: "",
@@ -41,8 +78,26 @@ export default function CreateOrganisation() {
     plan: "STANDARD",
     trial_or_paid: "PAID",
     max_learners: 50,
-    max_staff: 10
+    max_staff: 10,
+    assigned_template_ids: []
   });
+
+  // Fetch course templates
+  const { data: templatesData, isLoading: isLoadingTemplates } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => apiClient.get('/templates').then(res => res.data),
+    onSuccess: (data) => {
+      // Auto-check mandatory templates if assigned_template_ids is empty
+      if (formData.assigned_template_ids.length === 0 && data?.data) {
+        const mandatoryIds = data.data.filter(t => t.mandatory).map(t => t.id);
+        if (mandatoryIds.length > 0) {
+          setFormData(prev => ({ ...prev, assigned_template_ids: mandatoryIds }));
+        }
+      }
+    }
+  });
+  const templates = templatesData?.data || [];
+
 
   const handleNext = () => {
     // Basic validation
@@ -250,10 +305,25 @@ export default function CreateOrganisation() {
                       <input type="text" value={formData.name} onChange={e => updateForm('name', e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm" placeholder="e.g. Horizon Fostering" />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-slate-700">Organisation Type *</label>
-                      <select value={formData.type} onChange={e => updateForm('type', e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm bg-white">
-                        <option value="INDEPENDENT_FOSTERING_AGENCY">Independent Fostering Agency</option>
-                        <option value="LOCAL_AUTHORITY">Local Authority</option>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-slate-700">Organisation Type *</label>
+                        <button 
+                          onClick={() => setIsManageModalOpen(true)}
+                          className="text-xs text-blue-600 font-semibold hover:text-blue-700 flex items-center gap-1"
+                        >
+                          <Settings size={12} /> Manage Options
+                        </button>
+                      </div>
+                      <select 
+                        value={formData.type} 
+                        onChange={e => updateForm('type', e.target.value)} 
+                        className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm bg-white"
+                        disabled={isLoadingTypes}
+                      >
+                        <option value="" disabled>Select a type</option>
+                        {orgTypes.map((t) => (
+                          <option key={t.id} value={t.name}>{t.name}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-1">
@@ -335,6 +405,43 @@ export default function CreateOrganisation() {
                       <label className="text-sm font-medium text-slate-700">Maximum Staff</label>
                       <input type="number" value={formData.max_staff} onChange={e => updateForm('max_staff', parseInt(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm" />
                     </div>
+                  </div>
+
+                  <div className="pt-6 border-t">
+                    <h4 className="font-semibold text-slate-900 mb-3">Course Access</h4>
+                    <p className="text-sm text-slate-500 mb-4">Select which global course templates this organisation will have access to. Mandatory courses are pre-selected.</p>
+                    
+                    {isLoadingTemplates ? (
+                      <div className="text-sm text-slate-500">Loading templates...</div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                        {templates.map(template => (
+                          <label key={template.id} className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                              checked={formData.assigned_template_ids.includes(template.id)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  assigned_template_ids: checked 
+                                    ? [...prev.assigned_template_ids, template.id]
+                                    : prev.assigned_template_ids.filter(id => id !== template.id)
+                                }));
+                              }}
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-slate-900">{template.title}</p>
+                              {template.mandatory && <span className="inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100">MANDATORY</span>}
+                            </div>
+                          </label>
+                        ))}
+                        {templates.length === 0 && (
+                          <p className="text-sm text-slate-500 italic">No global templates available.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -443,6 +550,70 @@ export default function CreateOrganisation() {
           </div>
         )}
       </div>
+
+      {/* Manage Organisation Types Modal */}
+      {isManageModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-900">Manage Organisation Types</h3>
+              <button 
+                onClick={() => setIsManageModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              {isLoadingTypes ? (
+                <div className="text-center py-4 text-slate-500 text-sm">Loading types...</div>
+              ) : (
+                <ul className="space-y-2">
+                  {orgTypes.map((t) => (
+                    <li key={t.id} className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg group transition-colors border border-transparent hover:border-slate-100">
+                      <span className="text-sm font-medium text-slate-700">{t.name}</span>
+                      <button 
+                        onClick={() => deleteTypeMutation.mutate(t.id)}
+                        disabled={deleteTypeMutation.isPending}
+                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 p-1.5 rounded transition-all hover:bg-red-50 disabled:opacity-50"
+                        title="Delete Type"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </li>
+                  ))}
+                  {orgTypes.length === 0 && (
+                    <li className="text-center py-4 text-slate-400 text-sm">No types found.</li>
+                  )}
+                </ul>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
+              <input 
+                type="text" 
+                value={newTypeName}
+                onChange={(e) => setNewTypeName(e.target.value)}
+                placeholder="New type name..."
+                className="flex-1 h-9 px-3 text-sm rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-100"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newTypeName.trim()) {
+                    addTypeMutation.mutate(newTypeName.trim());
+                  }
+                }}
+              />
+              <button
+                disabled={!newTypeName.trim() || addTypeMutation.isPending}
+                onClick={() => addTypeMutation.mutate(newTypeName.trim())}
+                className="h-9 px-4 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-500 disabled:opacity-50 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

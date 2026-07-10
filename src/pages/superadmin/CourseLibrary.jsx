@@ -2,16 +2,40 @@ import React, { useState } from "react";
 import { Search, Plus, BookTemplate, Edit3, Copy, Archive, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import { format } from "date-fns";
+import { toast } from "@/components/ui/use-toast";
 
 export default function CourseTemplates() {
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
 
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ['templates'],
     queryFn: () => apiClient.get('/templates').then(res => res.data)
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: (id) => apiClient.post(`/templates/${id}/duplicate`),
+    onSuccess: () => {
+      toast({ title: "Template Duplicated", description: "A copy of the template has been created." });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to duplicate template.", variant: "destructive" });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => apiClient.delete(`/templates/${id}`),
+    onSuccess: () => {
+      toast({ title: "Template Deleted", description: "The template has been permanently removed." });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete template.", variant: "destructive" });
+    }
   });
 
   const templates = response?.data || [];
@@ -113,10 +137,24 @@ export default function CourseTemplates() {
                         <Link to={`/superadmin/course-builder/${t.id}`} className="text-slate-400 hover:text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-colors" title="Edit Builder">
                           <Edit3 size={16} />
                         </Link>
-                        <button className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded transition-colors" title="Duplicate">
+                        <button 
+                          className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded transition-colors disabled:opacity-50" 
+                          title="Duplicate"
+                          disabled={duplicateMutation.isPending}
+                          onClick={() => duplicateMutation.mutate(t.id)}
+                        >
                           <Copy size={16} />
                         </button>
-                        <button className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors" title="Archive">
+                        <button 
+                          className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors disabled:opacity-50" 
+                          title="Archive"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to permanently delete this template?")) {
+                              deleteMutation.mutate(t.id);
+                            }
+                          }}
+                        >
                           <Archive size={16} />
                         </button>
                       </div>

@@ -1,8 +1,16 @@
 import { Router } from 'express';
-import { createOrganization, listOrganizations, updateOrganization, deleteOrganization } from './organizations.controller';
+import { 
+  createOrganization, listOrganizations, updateOrganization, deleteOrganization,
+  getOrganizationTypes, addOrganizationType, deleteOrganizationType
+} from './organizations.controller';
 import { requireAuth } from '../auth/auth.middleware';
 
 const router = Router();
+
+// --- Organization Type Options ---
+router.get('/types', requireAuth, getOrganizationTypes);
+router.post('/types', requireAuth, addOrganizationType);
+router.delete('/types/:id', requireAuth, deleteOrganizationType);
 
 // Endpoint to create an organisation (Super Admin only in real app)
 router.post('/', requireAuth, createOrganization);

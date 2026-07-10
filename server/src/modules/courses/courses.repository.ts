@@ -60,6 +60,201 @@ export class CoursesRepository {
     });
   }
 
+  async duplicate(organizationId: string | null, id: string, userId?: string) {
+    const original = await this.findById(organizationId, id);
+    if (!original) return null;
+
+    return prisma.course.create({
+      data: {
+        organization_id: original.organization_id,
+        title: original.title + ' (Copy)',
+        description: original.description,
+        category: original.category,
+        level: original.level,
+        duration_minutes: original.duration_minutes,
+        thumbnail_url: original.thumbnail_url,
+        pass_mark: original.pass_mark,
+        is_template: original.is_template,
+        parent_template_id: original.parent_template_id,
+        version: original.version,
+        certificate_enabled: original.certificate_enabled,
+        certificate_title: original.certificate_title,
+        cpd_hours: original.cpd_hours,
+        expiry_months: original.expiry_months,
+        auto_issue: original.auto_issue,
+        allow_retake: original.allow_retake,
+        status: 'DRAFT',
+        mandatory: original.mandatory,
+        target_roles: original.target_roles,
+        sort_order: original.sort_order,
+        created_by: userId,
+        updated_by: userId,
+        sections: {
+          create: original.sections.map(section => ({
+            organization_id: original.organization_id,
+            title: section.title,
+            type: section.type,
+            sort_order: section.sort_order,
+            videos: {
+              create: section.videos.map(v => ({
+                organization_id: original.organization_id,
+                title: v.title,
+                s3_key: v.s3_key,
+                cloudfront_url: v.cloudfront_url,
+                duration_secs: v.duration_secs,
+                thumbnail_url: v.thumbnail_url,
+                transcript: v.transcript,
+                sort_order: v.sort_order,
+              }))
+            },
+            documents: {
+              create: section.documents.map(d => ({
+                organization_id: original.organization_id,
+                title: d.title,
+                s3_key: d.s3_key,
+                file_type: d.file_type,
+                file_size: d.file_size,
+                sort_order: d.sort_order,
+              }))
+            },
+            rich_text_lessons: {
+              create: section.rich_text_lessons.map(r => ({
+                organization_id: original.organization_id,
+                title: r.title,
+                content: r.content as any,
+                sort_order: r.sort_order,
+              }))
+            },
+            quizzes: {
+              create: section.quizzes.map(q => ({
+                organization_id: original.organization_id,
+                title: q.title,
+                pass_mark: q.pass_mark,
+                time_limit: q.time_limit,
+                sort_order: q.sort_order,
+                questions: {
+                  create: q.questions.map(qq => ({
+                    organization_id: original.organization_id,
+                    question: qq.question,
+                    explanation: qq.explanation,
+                    sort_order: qq.sort_order,
+                    answers: {
+                      create: qq.answers.map(qa => ({
+                        organization_id: original.organization_id,
+                        text: qa.text,
+                        is_correct: qa.is_correct,
+                        sort_order: qa.sort_order,
+                      }))
+                    }
+                  }))
+                }
+              }))
+            }
+          }))
+        }
+      }
+    });
+  }
+
+  async assignTemplate(orgId: string, templateId: string, userId?: string) {
+    // 1. Fetch the global template (orgId = null)
+    const original = await this.findById(null, templateId);
+    if (!original || !original.is_template) return null;
+
+    // 2. Duplicate it into the specific organization
+    return prisma.course.create({
+      data: {
+        organization_id: orgId,
+        title: original.title,
+        description: original.description,
+        category: original.category,
+        level: original.level,
+        duration_minutes: original.duration_minutes,
+        thumbnail_url: original.thumbnail_url,
+        pass_mark: original.pass_mark,
+        is_template: false,
+        parent_template_id: original.id,
+        version: original.version,
+        certificate_enabled: original.certificate_enabled,
+        certificate_title: original.certificate_title,
+        cpd_hours: original.cpd_hours,
+        expiry_months: original.expiry_months,
+        auto_issue: original.auto_issue,
+        allow_retake: original.allow_retake,
+        status: 'PUBLISHED',
+        mandatory: original.mandatory,
+        target_roles: original.target_roles,
+        sort_order: original.sort_order,
+        created_by: userId,
+        updated_by: userId,
+        sections: {
+          create: original.sections.map(section => ({
+            organization_id: orgId,
+            title: section.title,
+            type: section.type,
+            sort_order: section.sort_order,
+            videos: {
+              create: section.videos.map(v => ({
+                organization_id: orgId,
+                title: v.title,
+                s3_key: v.s3_key,
+                cloudfront_url: v.cloudfront_url,
+                duration_secs: v.duration_secs,
+                thumbnail_url: v.thumbnail_url,
+                transcript: v.transcript,
+                sort_order: v.sort_order,
+              }))
+            },
+            documents: {
+              create: section.documents.map(d => ({
+                organization_id: orgId,
+                title: d.title,
+                s3_key: d.s3_key,
+                file_type: d.file_type,
+                file_size: d.file_size,
+                sort_order: d.sort_order,
+              }))
+            },
+            rich_text_lessons: {
+              create: section.rich_text_lessons.map(r => ({
+                organization_id: orgId,
+                title: r.title,
+                content: r.content as any,
+                sort_order: r.sort_order,
+              }))
+            },
+            quizzes: {
+              create: section.quizzes.map(q => ({
+                organization_id: orgId,
+                title: q.title,
+                pass_mark: q.pass_mark,
+                time_limit: q.time_limit,
+                sort_order: q.sort_order,
+                questions: {
+                  create: q.questions.map(qq => ({
+                    organization_id: orgId,
+                    question: qq.question,
+                    explanation: qq.explanation,
+                    sort_order: qq.sort_order,
+                    answers: {
+                      create: qq.answers.map(qa => ({
+                        organization_id: orgId,
+                        text: qa.text,
+                        is_correct: qa.is_correct,
+                        sort_order: qa.sort_order,
+                      }))
+                    }
+                  }))
+                }
+              }))
+            }
+          }))
+        }
+      }
+    });
+  }
+
+
   async delete(organizationId: string | null, id: string) {
     return prisma.course.delete({
       where: { id, organization_id: organizationId },

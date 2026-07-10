@@ -19,12 +19,12 @@ export const createCourseSchema = z.object({
 
 export const updateCourseSchema = z.object({
   body: z.object({
-    title: z.string().min(3).max(200).optional(),
-    description: z.string().optional(),
-    category: z.string().min(2).optional(),
+    title: z.string().min(3).max(200).optional().or(z.literal('')),
+    description: z.string().optional().or(z.literal('')),
+    category: z.string().min(2).optional().or(z.literal('')),
     level: z.enum(['FOUNDATION', 'INTERMEDIATE', 'ADVANCED']).optional(),
     duration_minutes: z.number().int().positive().optional(),
-    thumbnail_url: z.string().url().optional(),
+    thumbnail_url: z.string().url().optional().or(z.literal('')),
     pass_mark: z.number().int().min(0).max(100).optional(),
     certificate_enabled: z.boolean().optional(),
     allow_retake: z.boolean().optional(),

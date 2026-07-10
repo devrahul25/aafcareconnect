@@ -12,10 +12,7 @@ datasource db {
 
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
 
-enum OrganizationType {
-  INDEPENDENT_FOSTERING_AGENCY
-  LOCAL_AUTHORITY
-}
+// OrganizationType enum removed in favor of dynamic OrganizationTypeOption model
 
 enum OrganizationStatus {
   ACTIVE
@@ -117,7 +114,7 @@ enum SectionType {
 model Organization {
   id                  String             @id @default(uuid())
   name                String
-  type                OrganizationType
+  type                String // Reference to OrganizationTypeOption.name
   logo_url            String?
   address             String?
   phone               String?
@@ -142,6 +139,25 @@ model Organization {
   subscriptions Subscription[]
 
   @@map("organizations")
+}
+
+model OrganizationTypeOption {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("organization_type_options")
+}
+
+model CourseCategoryOption {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("course_category_options")
 }
 
 // ─── SUBSCRIPTIONS ────────────────────────────────────────────────────────────
