@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BellRing, CheckCircle2, X } from "lucide-react";
+import { BellRing, CheckCircle2, X } from "lucide-react";
 import { ALERTS } from "@/lib/complianceData";
 
 const ALERT_CFG = {

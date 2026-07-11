@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { HelpCircle, Trash2, CheckCircle2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/apiClient';
 import { toast } from '@/components/ui/use-toast';

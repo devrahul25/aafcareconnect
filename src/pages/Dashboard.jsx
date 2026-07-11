@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useOutletContext, Link } from "react-router-dom";
+import { useOutletContext, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import {
   Users, BookOpen, CheckCircle2, Clock, AlertTriangle,
@@ -10,8 +10,8 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
-import { getAgencyMetrics, getCPDCertificates } from "@/lib/orgData";
-import { DEMO_PLATFORM_USERS, DEMO_ALL_CERTIFICATES, DEMO_PLATFORM_ALERTS, getAgencyMetrics as getDemoMetrics } from "@/lib/platformStore";
+import { getAgencyMetrics } from "@/lib/orgData";
+import { getAgencyMetrics as getDemoMetrics } from "@/lib/platformStore";
 import { tokenStorage } from "@/api/apiClient";
 
 // ─── Chart data (static — not org-specific) ───────────────────────────────────
@@ -123,6 +123,10 @@ export default function Dashboard() {
         <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
       </div>
     );
+  }
+
+  if (isLearner) {
+    return <Navigate to="/learner/learning" replace />;
   }
 
   if (isTrainer) {

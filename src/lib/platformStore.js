@@ -54,7 +54,7 @@ export const DEMO_ORGANISATION = null;
 export const AUDIT_LOG = [];
 export const getUserCertificates = () => [];
 export const getUserAuditLog = () => [];
-export const getComplianceExplainer = () => null;
+export const getComplianceExplainer = () => [];
 export const getAgencyMetrics = () => ({
   total: 0,
   fullyCompliant: 0,

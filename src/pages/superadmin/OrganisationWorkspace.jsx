@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { Building2, Users, BookOpen, CheckCircle2, Award, PieChart, CreditCard, Settings, ChevronLeft } from "lucide-react";
 

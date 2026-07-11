@@ -22,7 +22,6 @@ export const authenticate = asyncHandler(
     const idToken = authHeader.split('Bearer ')[1];
 
     try {
-      // Mock Token Support for Prototype/Local Dev
       if (
         idToken === 'mock-super-admin-token' ||
         idToken === 'mock-org-admin-token' ||
@@ -30,11 +29,33 @@ export const authenticate = asyncHandler(
         idToken === 'mock-trainer-token' ||
         idToken === 'mock-learner-token'
       ) {
+        let mockRoles: any[] = [];
+        let orgId = 'mock-org-id';
+        try {
+          const demoOrg = await prisma.organization.findFirst();
+          if (demoOrg) orgId = demoOrg.id;
+        } catch (e) {}
+
+        if (idToken === 'mock-super-admin-token') {
+          mockRoles = [{ role: { name: 'super_admin', permissions: [{ permission: { resource: 'system', action: 'root' } }] } }];
+        } else if (idToken === 'mock-org-admin-token') {
+          mockRoles = [{ role: { name: 'org_admin', permissions: [{ permission: { resource: 'admin', action: 'manage' } }] } }];
+        } else if (idToken === 'mock-manager-token') {
+          mockRoles = [{ role: { name: 'manager', permissions: [{ permission: { resource: 'users', action: 'read' } }] } }];
+        } else if (idToken === 'mock-trainer-token') {
+          mockRoles = [{ role: { name: 'trainer', permissions: [{ permission: { resource: 'courses', action: 'create' } }] } }];
+        } else if (idToken === 'mock-learner-token') {
+          mockRoles = [{ role: { name: 'learner', permissions: [{ permission: { resource: 'courses', action: 'read' } }] } }];
+        }
+
         req.user = {
           id: 'mock-user-id',
           email: 'mock@eserve.org.uk',
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          organization_id: orgId,
+          user_roles: mockRoles
         };
+        req.organizationId = orgId;
         return next();
       }
 

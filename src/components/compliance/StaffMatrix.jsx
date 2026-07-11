@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ChevronRight, AlertTriangle, CheckCircle2, Clock, Download } from "lucide-react";
+import { Search, ChevronRight, Download } from "lucide-react";
 import { STAFF_COMPLIANCE } from "@/lib/complianceData";
 
 const RISK_CFG = {

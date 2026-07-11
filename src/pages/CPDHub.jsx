@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
-  Award, Plus, Upload, Search, AlertTriangle, CheckCircle2,
+  Award, Upload, Search, AlertTriangle, CheckCircle2,
   Clock, Download, X, Send, TrendingUp, Shield,
-  Users, Sparkles, BookOpen, Bell, QrCode, Map, Star
+  Users, Sparkles, Bell, QrCode, Map
 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import CertificateCard from "@/components/cpd/CertificateCard";
@@ -16,7 +16,7 @@ import ProfessionalPassport from "@/components/cpd/ProfessionalPassport";
 import ManagerComplianceDashboard from "@/components/cpd/ManagerComplianceDashboard";
 import CertificateVerificationPortal from "@/components/cpd/CertificateVerificationPortal";
 import RenewalReminders from "@/components/cpd/RenewalReminders";
-import { CERTS, PEOPLE, CATS, daysUntil, fmt } from "@/lib/cpdData";
+import { CERTS, PEOPLE, CATS } from "@/lib/cpdData";
 
 // ─── Animated KPI Card ───────────────────────────────────────────────────────
 function AnimatedKpiCard({ title = undefined, value = undefined, sub = undefined, icon: Icon = undefined, bg = undefined, trend = undefined, trendUp = undefined }) {

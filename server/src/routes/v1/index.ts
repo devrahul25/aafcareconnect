@@ -9,12 +9,14 @@ import { storageRoutes } from '../../modules/storage/storage.routes';
 import usersRoutes from '../../modules/users/users.routes';
 import { organizationsRoutes } from '../../modules/organizations/organizations.routes';
 import { dashboardRoutes } from '../../modules/dashboard/dashboard.routes';
+import learnersRoutes from '../../modules/learners/learners.routes';
 
 const router = Router();
 
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
+router.use('/learners', learnersRoutes);
 router.use('/templates', templatesRoutes);
 router.use('/courses', coursesRoutes);
 router.use('/course-enrolments', enrolmentsRoutes);

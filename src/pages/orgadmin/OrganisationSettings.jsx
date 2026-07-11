@@ -1,6 +1,6 @@
 import React from "react";
 import PageHeader from "@/components/ui/PageHeader";
-import { Save, Building2, Image, Mail, Bell, Shield, Award } from "lucide-react";
+import { Save, Building2, Image, Mail, Bell, Award } from "lucide-react";
 
 export default function OrganisationSettings() {
   return (

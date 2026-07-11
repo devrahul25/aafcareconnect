@@ -132,11 +132,12 @@ model Organization {
   updated_at          DateTime           @updatedAt
   deleted_at          DateTime?
 
-  users         User[]
-  roles         Role[]
-  courses       Course[]
-  audit_logs    AuditLog[]
-  subscriptions Subscription[]
+  users            User[]
+  roles            Role[]
+  courses          Course[]
+  audit_logs       AuditLog[]
+  subscriptions    Subscription[]
+  learner_profiles LearnerProfile[]
 
   @@map("organizations")
 }
@@ -217,6 +218,7 @@ model User {
   cpd_certificates         CPDCertificate[]
   foster_carer_profile     FosterCarer?
   workforce_member_profile WorkforceMember?
+  learner_profile          LearnerProfile?
   supervised_carers        FosterCarer[]       @relation("SSWCarers")
   placements_as_ssw        Placement[]
 
@@ -803,4 +805,33 @@ model Placement {
   @@index([carer_id])
   @@index([status])
   @@map("placements")
+}
+
+// ─── LEARNER PROFILES ─────────────────────────────────────────────────────────
+
+model LearnerProfile {
+  id                        String    @id @default(uuid())
+  user_id                   String    @unique
+  learner_id                String    @unique
+  organization_id           String
+  employee_id               String?
+  job_role                  String?
+  department                String?
+  line_manager              String?
+  start_date                DateTime?
+  employment_status         String?
+  learning_group            String?
+  mandatory_learning_path   String?
+  compliance_category       String?
+  certificate_renewal_cycle String?
+  notification_preferences  String?
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([learner_id])
+  @@map("learner_profiles")
 }

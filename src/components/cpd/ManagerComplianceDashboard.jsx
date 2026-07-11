@@ -1,6 +1,6 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { AlertTriangle, CheckCircle2, Clock, TrendingUp, Users, Send, ChevronRight } from "lucide-react";
-import { AGENCY_COMPLIANCE, LEARNER_COMPLIANCE, CERTS, daysUntil, fmt } from "@/lib/cpdData";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { AlertTriangle, CheckCircle2, Clock, TrendingUp, Users, Send } from "lucide-react";
+import { AGENCY_COMPLIANCE, LEARNER_COMPLIANCE, CERTS, daysUntil } from "@/lib/cpdData";
 
 const expiring = CERTS.filter(c => c.status === "expiring_soon");
 const expired = CERTS.filter(c => c.status === "expired");

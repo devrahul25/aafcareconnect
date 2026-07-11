@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Search, UserPlus, MoreHorizontal, UserCog, Download, Loader2 } from "lucide-react";
+import { Search, UserPlus, UserCog, Download, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiClient } from "@/api/apiClient";
+import UserDrawerEnhanced from "@/components/admin/UserDrawerEnhanced";
 
 export default function Learners({ orgId }) {
   const [search, setSearch] = useState("");
   const [learners, setLearners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedLearner, setSelectedLearner] = useState(null);
 
   useEffect(() => {
     const fetchLearners = async () => {
@@ -37,9 +40,9 @@ export default function Learners({ orgId }) {
             <button className="h-9 px-4 text-sm font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
               <Download size={16} /> Export
             </button>
-            <button className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 transition-colors">
-              <UserPlus size={16} /> Invite Learner
-            </button>
+            <Link to="/orgadmin/learners/create" className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 transition-colors">
+              <UserPlus size={16} /> Create Learner
+            </Link>
           </div>
         }
       />
@@ -97,22 +100,46 @@ export default function Learners({ orgId }) {
                   </td>
                   <td className="px-4 py-3 text-slate-600">{l.email}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="font-medium text-slate-900">0</span>
+                    <span className="font-medium text-slate-900">{l.metrics?.completedCourses || 0}</span>
                     <span className="text-slate-400 mx-1">/</span>
-                    <span className="text-slate-500">0</span>
+                    <span className="text-slate-500">{l.metrics?.assignedCourses || 0}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                      N/A
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                      (l.metrics?.complianceScore || 0) >= 90 ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                      (l.metrics?.complianceScore || 0) >= 75 ? "bg-amber-100 text-amber-700 border-amber-200" :
+                      "bg-rose-100 text-rose-700 border-rose-200"
+                    }`}>
+                      {l.metrics?.complianceScore || 0}%
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center text-slate-600 font-medium">0</td>
-                  <td className="px-4 py-3 text-center text-slate-600 font-medium">0h</td>
+                  <td className="px-4 py-3 text-center text-slate-600 font-medium">{l.metrics?.certificates || 0}</td>
+                  <td className="px-4 py-3 text-center text-slate-600 font-medium">{l.metrics?.cpdHours || 0}h</td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
                     {l.last_login_at ? new Date(l.last_login_at).toLocaleDateString() : 'Never'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors" title="Manage Learner">
+                    <button 
+                      onClick={() => setSelectedLearner({
+                        id: l.id,
+                        name: l.full_name || 'User',
+                        role: 'Learner',
+                        passportId: l.id.substring(0, 8).toUpperCase(),
+                        riskLevel: 'low',
+                        complianceScore: l.metrics?.complianceScore || 0,
+                        certificates: l.metrics?.certificates || 0,
+                        cpdHours: l.metrics?.cpdHours || 0,
+                        mandatoryPct: l.metrics?.complianceScore || 0,
+                        skillsScore: 0,
+                        renewalsDue: 0,
+                        email: l.email || '',
+                        lastActivity: l.last_login_at ? new Date(l.last_login_at).toLocaleDateString() : 'Never',
+                        avatarColor: "bg-slate-600",
+                        avatar: l.full_name?.split(' ').map(n=>n[0]).join('') || 'U'
+                      })}
+                      className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors" 
+                      title="Manage Learner"
+                    >
                       <UserCog size={16} />
                     </button>
                   </td>
@@ -122,6 +149,12 @@ export default function Learners({ orgId }) {
           </table>
         </div>
       </div>
+      {selectedLearner && (
+        <UserDrawerEnhanced 
+          user={selectedLearner} 
+          onClose={() => setSelectedLearner(null)} 
+        />
+      )}
     </div>
   );
 }

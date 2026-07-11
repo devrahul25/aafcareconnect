@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
-  User, Award, BookOpen, TrendingUp, Star, CheckCircle2,
-  Briefcase, Sparkles, Map, Clock, Download, Share2, Link2
+  User, Award, BookOpen, TrendingUp, Star, CheckCircle2, Sparkles, Map
 } from "lucide-react";
 import PassportHeader from "@/components/passport/PassportHeader";
 import PassportKPIs from "@/components/passport/PassportKPIs";

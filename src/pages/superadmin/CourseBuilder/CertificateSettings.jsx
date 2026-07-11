@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import debounce from "lodash/debounce";
@@ -24,7 +24,7 @@ export default function CertificateSettings({ course, setSaveStatus }) {
     onError: () => setSaveStatus("error")
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const debouncedSave = useCallback(
     debounce((data) => {
       updateMutation.mutate(data);

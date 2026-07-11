@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
 import { Link } from "react-router-dom";
-import { Play, CheckCircle2, Clock, BookOpen, ChevronRight } from "lucide-react";
+import { Play, CheckCircle2, Clock, BookOpen } from "lucide-react";
 
 const COURSES = {
   inProgress: [

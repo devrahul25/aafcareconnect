@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import {
   BookOpen, Search, Plus, Users, Play,
-  CheckCircle2, ChevronRight, Filter, AlertTriangle,
-  UserPlus, Send, BarChart3, ArrowRight, Award, X, Trophy, Flame, Sparkles
+  CheckCircle2, ChevronRight, AlertTriangle,
+  UserPlus, Send, BarChart3, X
 } from "lucide-react";
 import CourseCard from "@/components/course/CourseCard";
 import ContinueLearning from "@/components/learner/ContinueLearning";
@@ -21,7 +21,7 @@ import ManagerAnalytics from "@/components/manager/ManagerAnalytics";
 import ScenarioPractice from "@/components/learner/ScenarioPractice";
 import { BADGES, LEARNER_GAMIFICATION, CURRENT_PROGRESS } from "@/lib/gamification";
 import { BADGE_BG } from "@/components/gamification/badgeStyles";
-import { getCourses, getCourseEnrolments, getWorkforceMembers } from "@/lib/orgData";
+import { getCourses, getWorkforceMembers } from "@/lib/orgData";
 import { apiClient } from "@/api/apiClient";
 
 // ─── Demo catalogue (shown when no organisationId) ────────────────────────────

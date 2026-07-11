@@ -1,9 +1,8 @@
-import { Zap, Flame, Award, Trophy, TrendingUp, Star } from "lucide-react";
-import { computeLevel, BADGES } from "@/lib/gamification";
+import { Zap, Flame, Trophy, Star } from "lucide-react";
+import { computeLevel } from "@/lib/gamification";
 import GamificationStats from "@/components/gamification/GamificationStats";
 import AchievementBadges from "@/components/gamification/AchievementBadges";
 import CompletionMilestones from "@/components/gamification/CompletionMilestones";
-import LearningStreak from "@/components/gamification/LearningStreak";
 
 const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

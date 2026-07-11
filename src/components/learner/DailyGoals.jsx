@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Target, CheckCircle2, Circle, Flame, Zap, ChevronRight } from "lucide-react";
+import { Target, CheckCircle2, Circle, Flame, Zap } from "lucide-react";
 
 const GOAL_MINUTES = 20;
 

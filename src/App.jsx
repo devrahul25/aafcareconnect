@@ -11,9 +11,9 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 // Layout
 import AppLayout from "@/components/layout/AppLayout";
 
-// Pages
 import Dashboard from "@/pages/Dashboard";
 import LearningHub from "@/pages/LearningHub";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import CPDHub from "@/pages/CPDHub";
 import CourseBuilder from "@/pages/CourseBuilder";
 import Administration from "@/pages/Administration";
@@ -36,6 +36,7 @@ import SANotifications from "@/pages/superadmin/Notifications";
 
 // Org Admin Pages
 import OALearners from "@/pages/orgadmin/Learners";
+import OACreateLearner from "@/pages/orgadmin/CreateLearner";
 import OAStaff from "@/pages/orgadmin/Staff";
 import OAReports from "@/pages/orgadmin/Reports";
 import OAOrganisationSettings from "@/pages/orgadmin/OrganisationSettings";
@@ -107,6 +108,7 @@ const AuthenticatedApp = () => {
           
           {/* Org Admin Routes */}
           <Route path="/orgadmin/learners" element={<OALearners />} />
+          <Route path="/orgadmin/learners/create" element={<ErrorBoundary><OACreateLearner /></ErrorBoundary>} />
           <Route path="/orgadmin/staff" element={<OAStaff />} />
           <Route path="/orgadmin/reports" element={<OAReports />} />
           <Route path="/orgadmin/settings" element={<ProtectedRoute requiredLevel={4}><OAOrganisationSettings /></ProtectedRoute>} />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Clock, Send, BookOpen, Download, CheckCircle2 } from "lucide-react";
+import { Send, BookOpen, Download, CheckCircle2 } from "lucide-react";
 import { EXPIRING_CERTS, EXPIRED_CERTS, fmt, daysUntil } from "@/lib/complianceData";
 
 function getBand(days) {

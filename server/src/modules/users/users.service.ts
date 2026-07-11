@@ -23,8 +23,31 @@ export class UsersService {
             take: limit
         });
 
+        const usersWithMetrics = result.users.map((u: any) => {
+            const assignedCourses = u.course_enrolments?.length || 0;
+            const completedCourses = u.course_enrolments?.filter((e: any) => e.status === 'COMPLETED').length || 0;
+            const cpdHours = u.cpd_certificates?.reduce((sum: number, c: any) => sum + (c.cpd_hours || 0), 0) || 0;
+            const complianceScore = assignedCourses > 0 ? Math.round((completedCourses / assignedCourses) * 100) : 100;
+            const certificates = u.cpd_certificates?.length || 0;
+
+            const userCopy = { ...u };
+            delete userCopy.course_enrolments;
+            delete userCopy.cpd_certificates;
+
+            return {
+                ...userCopy,
+                metrics: {
+                    assignedCourses,
+                    completedCourses,
+                    cpdHours,
+                    complianceScore,
+                    certificates
+                }
+            };
+        });
+
         return {
-            users: result.users,
+            users: usersWithMetrics,
             pagination: {
                 total: result.total,
                 page,

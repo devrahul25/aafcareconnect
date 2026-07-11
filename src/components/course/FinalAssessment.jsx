@@ -26,7 +26,7 @@ export default function FinalAssessment({ questions, passMark, courseTitle, onPa
       };
     });
     // re-randomize when seed changes (retry)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [seed, questions]);
 
   const [answers, setAnswers] = useState({});

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Play, Clock, BookOpen, Award, ChevronRight, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Play, Clock, Award, ChevronRight, ArrowRight, CheckCircle2 } from "lucide-react";
 import CircularProgress from "@/components/course/CircularProgress";
 
 // Illustrative in-progress state — replace with real entity data in a later phase

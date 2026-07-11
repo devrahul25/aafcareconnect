@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, XCircle, Clock } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { COMPLIANCE_ITEMS, PASSPORT_PROFILE, fmt, daysUntil } from "@/lib/passportData";
 
 const STATUS_CFG = {

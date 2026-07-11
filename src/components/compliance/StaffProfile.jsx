@@ -1,4 +1,4 @@
-import { X, CheckCircle2, AlertTriangle, Clock, Award, TrendingUp, Send, RefreshCw } from "lucide-react";
+import { X, CheckCircle2, AlertTriangle, Clock, Send, RefreshCw } from "lucide-react";
 
 const RISK_CFG = {
   low:    { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", label: "Low Risk"    },

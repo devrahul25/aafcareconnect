@@ -198,7 +198,7 @@ export default function CardAssessment({ questions, passMark, courseTitle, onPas
         correct: shuffled.findIndex((o) => o.originalIdx === q.correct),
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [seed, questions]);
 
   const [current, setCurrent] = useState(0);

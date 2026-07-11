@@ -1,5 +1,5 @@
-import { Award, Shield, Star, Clock, BookOpen, TrendingUp, Download, CheckCircle2 } from "lucide-react";
-import { CERTS, CPD_ACHIEVEMENTS, SKILLS_MATRIX, LEVEL_LABELS } from "@/lib/cpdData";
+import { Award, Star, Clock, BookOpen, TrendingUp, Download, CheckCircle2 } from "lucide-react";
+import { CERTS, CPD_ACHIEVEMENTS, SKILLS_MATRIX } from "@/lib/cpdData";
 import { jsPDF } from "jspdf";
 
 const SPECIALISATIONS = [

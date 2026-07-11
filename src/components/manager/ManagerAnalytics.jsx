@@ -2,15 +2,13 @@
 import { useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, Legend,
+  LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
 import {
-  TrendingUp, AlertTriangle, CheckCircle2, Users, BarChart3,
+  TrendingUp, AlertTriangle, CheckCircle2, BarChart3,
   ArrowUp, ArrowDown, ShieldAlert, Clock, ChevronRight, Zap
 } from "lucide-react";
-import BadgeIcon from "@/components/gamification/BadgeIcon";
-import { BADGES, LEARNER_GAMIFICATION } from "@/lib/gamification";
-import { BADGE_BG } from "@/components/gamification/badgeStyles";
+import { LEARNER_GAMIFICATION } from "@/lib/gamification";
 
 // ─── Demo data ──────────────────────────────────────────────────────────────
 const LEARNERS = [

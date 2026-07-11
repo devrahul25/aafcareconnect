@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Play, CheckCircle2, Layout, BookOpen, HelpCircle, Award, Settings, Loader2 } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle2, Layout, BookOpen, Award, Settings, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import { toast } from "@/components/ui/use-toast";
 
 import CourseInfoTab from "./CourseInfoTab";
 import CurriculumBuilder from "./CurriculumBuilder";
-import QuizBuilder from "./QuizBuilder";
 import CertificateSettings from "./CertificateSettings";
 import CourseSettingsTab from "./CourseSettingsTab";
 

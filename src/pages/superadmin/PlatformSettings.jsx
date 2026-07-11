@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
-import { Settings, Save, Lock, CreditCard, Code, ShieldAlert, Mail } from "lucide-react";
+import { Save, Lock, CreditCard, Code, ShieldAlert, Mail } from "lucide-react";
 
 export default function PlatformSettings() {
   const [activeTab, setActiveTab] = useState("auth");

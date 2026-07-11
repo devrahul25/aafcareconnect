@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
   Shield, Users, Award, AlertTriangle, Clock,
-  TrendingUp, Bell, QrCode, Flame, BarChart3, Sparkles, CheckCircle2
+  TrendingUp, Bell, Flame, BarChart3, Sparkles, CheckCircle2
 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import KpiCard from "@/components/ui/KpiCard";

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, CreditCard, MoreHorizontal, Settings, ArrowUpCircle, PauseCircle, RefreshCw, FileText } from "lucide-react";
+import { Search, CreditCard, Settings, ArrowUpCircle, PauseCircle, RefreshCw, FileText } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
 const MOCK_SUBSCRIPTIONS = [

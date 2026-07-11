@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Plus, GripVertical, FileText, Video, HelpCircle, File, Trash2, Edit2, LayoutTemplate } from "lucide-react";
+import { Plus, GripVertical, FileText, Video, HelpCircle, Trash2, Edit2, LayoutTemplate } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
-import { toast } from "@/components/ui/use-toast";
 
 import VideoModuleUI from "./Modules/VideoModuleUI";
 import DocumentModuleUI from "./Modules/DocumentModuleUI";

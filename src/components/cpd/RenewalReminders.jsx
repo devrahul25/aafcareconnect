@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, CheckCircle2, AlertTriangle, Clock, Send, X, BellRing } from "lucide-react";
+import { Bell, CheckCircle2, Send, BellRing } from "lucide-react";
 import { CERTS, fmt, daysUntil } from "@/lib/cpdData";
 
 const REMINDER_THRESHOLDS = [

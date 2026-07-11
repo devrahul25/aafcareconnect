@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
-  PenTool, Plus, Play, FileText, HelpCircle, Settings,
-  CheckCircle2, Trash2, GripVertical, X, Upload,
-  Eye, Save, Users, Clock, Award, ArrowRight, ChevronRight,
-  Zap, BarChart3, Edit3, Lock, AlertTriangle, Star,
-  Tag, FolderOpen, RefreshCw, Pencil, ChevronDown
+  PenTool, Plus, Play, FileText, HelpCircle,
+  CheckCircle2, Trash2, GripVertical, X, Save, Users, Award, Edit3, Lock, AlertTriangle,
+  Tag, FolderOpen, Pencil, ChevronDown
 } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";

@@ -40,4 +40,18 @@ export class EmailService {
       throw error;
     }
   }
+
+  async sendLearnerWelcomeEmail(to: string, data: any): Promise<void> {
+    try {
+      const htmlBody = this.renderer.render('learner-welcome', {
+        ...data,
+        email: to,
+        login_url: env.FRONTEND_URL ? `${env.FRONTEND_URL}/login` : 'https://app.aafcareconnect.com/login'
+      });
+      await this.provider.sendEmail(to, 'Welcome to AAF CareConnect', htmlBody);
+    } catch (error) {
+      logger.error(`Failed to send learner welcome email to ${to}`, error);
+      throw error;
+    }
+  }
 }

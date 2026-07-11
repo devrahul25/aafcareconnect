@@ -1,11 +1,9 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
-import {
-  Settings, Users, Building2, Bell, Plus, X,
+import { Users, Building2, Plus, X,
   Mail, Edit3, Search, Download, Shield, Clock, AlertTriangle, CheckCircle2
 } from "lucide-react";
-import StatusBadge from "@/components/ui/StatusBadge";
 import PageHeader from "@/components/ui/PageHeader";
 import UserDrawerEnhanced from "@/components/admin/UserDrawerEnhanced";
 import AuditLog from "@/components/admin/AuditLog";

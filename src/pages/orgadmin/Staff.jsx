@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, UserPlus, MoreHorizontal, UserCog, Loader2 } from "lucide-react";
+import { Search, UserPlus, UserCog, Loader2 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiClient } from "@/api/apiClient";
 

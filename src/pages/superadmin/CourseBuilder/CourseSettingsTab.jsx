@@ -66,7 +66,7 @@ export default function CourseSettingsTab({ course, setSaveStatus }) {
   });
 
   // Debounce the mutation call to prevent spamming the backend
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const debouncedSave = useCallback(
     debounce((data) => {
       // Ensure numbers are properly formatted

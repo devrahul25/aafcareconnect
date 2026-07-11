@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, UserPlus, FileText, Download, Eye, PlusCircle } from "lucide-react";
+import { Search, FileText, Download, Eye } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 
 const MOCK_TEAM_LEARNERS = [

@@ -1,4 +1,4 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { TrendingUp, Download, Shield, Users, Award, AlertTriangle } from "lucide-react";
 import { COMPLIANCE_TREND, DEPT_COMPLIANCE, AGENCY_SCORE, SCORE_TREND, STAFF_COMPLIANCE } from "@/lib/complianceData";
 import { jsPDF } from "jspdf";

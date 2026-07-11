@@ -33,21 +33,58 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
   // ==========================================
   // Development Mock Token Bypass
   // ==========================================
-  if (token === 'mock-super-admin-token') {
-    const superAdmin = await prisma.user.findUnique({ where: { email: 'admin@demo.com' } });
+  if (
+    token === 'mock-super-admin-token' ||
+    token === 'mock-org-admin-token' ||
+    token === 'mock-manager-token' ||
+    token === 'mock-trainer-token' ||
+    token === 'mock-learner-token'
+  ) {
+    let orgId = 'mock-org-id';
+    try {
+      const demoOrg = await prisma.organization.findFirst();
+      if (demoOrg) orgId = demoOrg.id;
+    } catch (e) {}
+
+    let permissions = new Set<string>();
+    let email = 'mock@eserve.org.uk';
+    let fullName = 'Mock User';
+
+    if (token === 'mock-super-admin-token') {
+      permissions = new Set(['system:root', 'admin:manage']);
+      email = 'admin@demo.com';
+      fullName = 'System Super Admin';
+    } else if (token === 'mock-org-admin-token') {
+      permissions = new Set(['admin:manage', 'users:manage', 'courses:read']);
+      email = 'orgadmin@eserve.org.uk';
+      fullName = 'Org Admin';
+    } else if (token === 'mock-manager-token') {
+      permissions = new Set(['users:read']);
+      email = 'manager@eserve.org.uk';
+      fullName = 'Manager';
+    } else if (token === 'mock-trainer-token') {
+      permissions = new Set(['courses:create']);
+      email = 'trainer@eserve.org.uk';
+      fullName = 'Trainer';
+    } else if (token === 'mock-learner-token') {
+      permissions = new Set(['courses:read']);
+      email = 'learner@eserve.org.uk';
+      fullName = 'Learner';
+    }
+
     const authReq = req as any;
     authReq.user = {
-      id: superAdmin?.id || '00000000-0000-0000-0000-000000000000',
-      organization_id: superAdmin?.organization_id || null,
+      id: 'mock-user-id',
+      organization_id: orgId,
       status: 'ACTIVE',
-      email: 'admin@demo.com',
-      full_name: 'System Super Admin',
+      email: email,
+      full_name: fullName,
       session_version: 1,
+      user_roles: [{ role: { name: token.split('-')[1] + (token.includes('admin') ? '_admin' : '') } }]
     };
-    authReq.organizationId = superAdmin?.organization_id || null;
+    authReq.organizationId = orgId;
     authReq.organizationStatus = 'ACTIVE';
-    // Give them root access
-    authReq.permissions = new Set(['system:root', 'admin:manage']);
+    authReq.permissions = permissions;
     authReq.ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
     
     return next();

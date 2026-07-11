@@ -1,6 +1,6 @@
 import React from "react";
 import PageHeader from "@/components/ui/PageHeader";
-import { Bell, CheckCircle2, AlertTriangle, UserPlus, FileText } from "lucide-react";
+import { Bell, CheckCircle2, AlertTriangle, UserPlus } from "lucide-react";
 
 const NOTIFICATIONS = [
   { id: "1", type: "course_completed", title: "Course Completed", desc: "Sarah Jenkins has completed 'Safeguarding Children Level 2'.", time: "10 mins ago", unread: true, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },

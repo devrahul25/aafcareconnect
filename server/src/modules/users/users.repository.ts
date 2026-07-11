@@ -50,7 +50,9 @@ export class UsersRepository {
                             id: true,
                             name: true
                         }
-                    }
+                    },
+                    course_enrolments: true,
+                    cpd_certificates: true
                 },
                 skip,
                 take,

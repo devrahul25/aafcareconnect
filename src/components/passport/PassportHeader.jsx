@@ -1,4 +1,4 @@
-import { Shield, Share2, Download, Link2, MapPin, Mail, Phone, Star } from "lucide-react";
+import { Shield, Share2, Download, Link2, MapPin, Mail, Phone } from "lucide-react";
 import { PASSPORT_PROFILE, LEVEL_SYSTEM } from "@/lib/passportData";
 import { jsPDF } from "jspdf";
 

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Calendar, Clock, Award, TrendingUp } from "lucide-react";
+import { Calendar, TrendingUp } from "lucide-react";
 import { CPD_TIMELINE, fmtShort } from "@/lib/cpdData";
 
 const CAT_COLORS = {

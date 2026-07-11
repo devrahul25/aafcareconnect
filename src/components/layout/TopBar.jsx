@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Search, Building2, Users, Library, Settings, PieChart } from "lucide-react";
+import { Bell, Search, Building2, Users, Library } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function TopBar({ user, title, actions }) {

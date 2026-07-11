@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GitBranch, Play, CheckCircle2, ArrowRight, RotateCcw, ShieldCheck, Heart, Users, Sparkles } from "lucide-react";
+import { GitBranch, Play, CheckCircle2, ShieldCheck, Heart, Users, Sparkles } from "lucide-react";
 import BranchingScenario from "@/components/course/neglect/BranchingScenario";
 
 const SCENARIOS = [
