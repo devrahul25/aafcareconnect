@@ -4,7 +4,7 @@ import {
   FileText, Shield, Users, Briefcase, Home, BarChart3,
   Settings, ChevronLeft, ChevronRight, LogOut, Lock,
   Building2, CreditCard, PieChart, History, Bell, Library,
-  TrendingUp
+  TrendingUp, ShieldAlert
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -26,15 +26,16 @@ const NAV_ITEMS = [
  */
 const ORG_ADMIN_NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard",           path: "/dashboard" },
-  { icon: BookOpen,        label: "Learning Hub",        path: "/learning-hub" },
+
   { icon: Users,           label: "Learners",            path: "/orgadmin/learners" },
   { icon: Briefcase,       label: "Staff",               path: "/orgadmin/staff" },
-  { icon: PenTool,         label: "Course Builder",      path: "/course-builder" },
+  { icon: BookOpen,        label: "Courses",             path: "/orgadmin/courses" },
   { icon: Award,           label: "CPD & Certificates",  path: "/cpd-certificates" },
   { icon: Shield,          label: "Professional Passport",path: "/professional-passport" },
   { icon: Shield,          label: "Compliance Hub",      path: "/compliance-hub" },
   { icon: PieChart,        label: "Reports",             path: "/orgadmin/reports" },
   { icon: Settings,        label: "Administration",      path: "/admin" },
+
   { icon: Building2,       label: "Organisation Settings",path: "/orgadmin/settings" },
   { icon: Bell,            label: "Notifications",       path: "/orgadmin/notifications" },
 ];

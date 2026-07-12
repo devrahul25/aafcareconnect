@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Search, UserPlus, UserCog, Loader2 } from "lucide-react";
+import { Search, UserPlus, UserCog, Loader2, Settings, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiClient } from "@/api/apiClient";
+import RolesPermissions from "./RolesPermissions";
+import InviteStaffWizard from "@/components/admin/InviteStaffWizard";
 
 export default function Staff({ orgId }) {
   const [search, setSearch] = useState("");
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('staff');
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchStaff = async () => {
+  const fetchStaff = async () => {
       try {
         setLoading(true);
         const params = { role: 'org_admin,manager,trainer' };
@@ -24,22 +29,53 @@ export default function Staff({ orgId }) {
         setLoading(false);
       }
     };
+
+  useEffect(() => {
     fetchStaff();
   }, [orgId]);
 
   return (
     <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
       <PageHeader 
-        title="Staff Members" 
-        subtitle="Manage your organisation's administrative and support staff"
+        title="Staff & Permissions" 
+        subtitle="Manage your organisation's administrative and support staff, and customize their roles"
         actions={
-          <button className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 transition-colors">
-            <UserPlus size={16} /> Invite Staff
-          </button>
+          activeTab === 'staff' && (
+            <button 
+              onClick={() => setIsInviteModalOpen(true)}
+              className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 transition-colors"
+            >
+              <UserPlus size={16} /> Invite Staff
+            </button>
+          )
         }
       />
 
-      <div className="card p-0 overflow-hidden">
+      <div className="flex items-center gap-6 border-b border-slate-200">
+        <button
+          className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'staff' 
+              ? 'border-blue-600 text-blue-600' 
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+          onClick={() => setActiveTab('staff')}
+        >
+          Staff List
+        </button>
+        <button
+          className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'roles' 
+              ? 'border-blue-600 text-blue-600' 
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+          onClick={() => setActiveTab('roles')}
+        >
+          Roles & Permissions
+        </button>
+      </div>
+
+      {activeTab === 'staff' ? (
+        <div className="card p-0 overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -109,8 +145,11 @@ export default function Staff({ orgId }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors" title="Manage Staff">
-                      <UserCog size={16} />
+                    <button onClick={() => navigate(`/orgadmin/staff/${s.id}`)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Manage Staff Profile">
+                      <Settings size={16} />
+                    </button>
+                    <button className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>
@@ -119,6 +158,16 @@ export default function Staff({ orgId }) {
           </table>
         </div>
       </div>
+      ) : (
+        <RolesPermissions embedded={true} />
+      )}
+
+      {isInviteModalOpen && (
+        <InviteStaffWizard 
+          onClose={() => setIsInviteModalOpen(false)}
+          onSuccess={() => fetchStaff()}
+        />
+      )}
     </div>
   );
 }

@@ -23,6 +23,27 @@ router.get(
     asyncHandler(UsersController.getPendingApprovals)
 );
 
+// Invite staff
+router.post(
+    '/invite',
+    requirePermission('users', 'manage'),
+    asyncHandler(UsersController.inviteUser)
+);
+
+// Get user profile (Full detail)
+router.get(
+    '/:userId/profile',
+    requirePermission('users', 'manage'),
+    asyncHandler(UsersController.getUserProfile)
+);
+
+// Update user responsibilities
+router.put(
+    '/:userId/responsibilities',
+    requirePermission('users', 'manage'),
+    asyncHandler(UsersController.updateUserResponsibilities)
+);
+
 // Get user by ID
 router.get(
     '/:userId',

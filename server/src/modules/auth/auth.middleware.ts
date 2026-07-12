@@ -80,6 +80,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       email: email,
       full_name: fullName,
       session_version: 1,
+      organization: { status: 'ACTIVE' },
       user_roles: [{ role: { name: token.split('-')[1] + (token.includes('admin') ? '_admin' : '') } }]
     };
     authReq.organizationId = orgId;

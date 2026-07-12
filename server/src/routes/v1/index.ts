@@ -10,6 +10,8 @@ import usersRoutes from '../../modules/users/users.routes';
 import { organizationsRoutes } from '../../modules/organizations/organizations.routes';
 import { dashboardRoutes } from '../../modules/dashboard/dashboard.routes';
 import learnersRoutes from '../../modules/learners/learners.routes';
+import rolesRoutes from '../../modules/roles/roles.routes';
+import permissionsRoutes from '../../modules/permissions/permissions.routes';
 
 const router = Router();
 
@@ -24,5 +26,7 @@ router.use('/compliance-records', complianceRoutes);
 router.use('/storage', storageRoutes);
 router.use('/organizations', organizationsRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/roles', rolesRoutes);
+router.use('/permissions', permissionsRoutes);
 
 export const v1Routes = router;

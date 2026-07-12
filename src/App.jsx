@@ -38,9 +38,12 @@ import SANotifications from "@/pages/superadmin/Notifications";
 import OALearners from "@/pages/orgadmin/Learners";
 import OACreateLearner from "@/pages/orgadmin/CreateLearner";
 import OAStaff from "@/pages/orgadmin/Staff";
+import OAStaffProfile from "@/pages/orgadmin/StaffProfile";
 import OAReports from "@/pages/orgadmin/Reports";
 import OAOrganisationSettings from "@/pages/orgadmin/OrganisationSettings";
 import OANotifications from "@/pages/orgadmin/Notifications";
+import OARolesPermissions from "@/pages/orgadmin/RolesPermissions";
+import OACourses from "@/pages/orgadmin/OACourses";
 
 // Manager Pages
 import MgrLearners from "./pages/manager/MyLearners";
@@ -110,8 +113,11 @@ const AuthenticatedApp = () => {
           <Route path="/orgadmin/learners" element={<OALearners />} />
           <Route path="/orgadmin/learners/create" element={<ErrorBoundary><OACreateLearner /></ErrorBoundary>} />
           <Route path="/orgadmin/staff" element={<OAStaff />} />
+          <Route path="/orgadmin/staff/:id" element={<OAStaffProfile />} />
+          <Route path="/orgadmin/courses" element={<OACourses />} />
           <Route path="/orgadmin/reports" element={<OAReports />} />
           <Route path="/orgadmin/settings" element={<ProtectedRoute requiredLevel={4}><OAOrganisationSettings /></ProtectedRoute>} />
+          <Route path="/orgadmin/roles" element={<ProtectedRoute requiredLevel={4}><OARolesPermissions /></ProtectedRoute>} />
           <Route path="/orgadmin/notifications" element={<ProtectedRoute requiredLevel={4}><OANotifications /></ProtectedRoute>} />
 
           {/* Manager / Supervisor Routes (Level 3+) */}

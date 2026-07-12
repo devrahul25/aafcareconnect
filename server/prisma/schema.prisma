@@ -138,6 +138,7 @@ model Organization {
   audit_logs       AuditLog[]
   subscriptions    Subscription[]
   learner_profiles LearnerProfile[]
+  staff_profiles   StaffProfile[]
 
   @@map("organizations")
 }
@@ -219,6 +220,7 @@ model User {
   foster_carer_profile     FosterCarer?
   workforce_member_profile WorkforceMember?
   learner_profile          LearnerProfile?
+  staff_profile            StaffProfile?
   supervised_carers        FosterCarer[]       @relation("SSWCarers")
   placements_as_ssw        Placement[]
 
@@ -834,4 +836,26 @@ model LearnerProfile {
   @@index([organization_id])
   @@index([learner_id])
   @@map("learner_profiles")
+}
+
+// ─── STAFF PROFILES ───────────────────────────────────────────────────────────
+
+model StaffProfile {
+  id                        String    @id @default(uuid())
+  user_id                   String    @unique
+  organization_id           String
+  employee_id               String?
+  job_title                 String?
+  department                String?
+  employment_type           String?
+  start_date                DateTime?
+  responsibility_scope      Json?     // Stores JSON defining managed learners, teams, depts, etc.
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+
+  user         User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@map("staff_profiles")
 }

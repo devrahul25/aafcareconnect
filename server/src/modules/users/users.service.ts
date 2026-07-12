@@ -1,5 +1,9 @@
 import { UserStatus } from '@prisma/client';
 import { UsersRepository } from './users.repository';
+import { prisma } from '../../config/database';
+import bcrypt from 'bcrypt';
+import { FirebaseAdminService } from '../../shared/providers/identity/firebase-admin.service';
+import { EmailService } from '../../shared/providers/email/email.service';
 
 export class UsersService {
 
@@ -143,5 +147,150 @@ export class UsersService {
         }
 
         return UsersRepository.updateStatus(userId, status);
+    }
+
+    /**
+     * Invite a new staff user
+     */
+    static async inviteUser(data: {
+        full_name: string;
+        email: string;
+        phone?: string;
+        role_id: string;
+        organization_id: string;
+        employee_id?: string;
+        job_title?: string;
+        department?: string;
+        employment_type?: string;
+        start_date?: Date;
+        responsibility_scope?: any;
+    }) {
+        const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
+        if (existingUser) {
+            throw new Error('User with this email already exists');
+        }
+
+        const role = await prisma.role.findUnique({ where: { id: data.role_id } });
+        if (!role) {
+            throw new Error('Role not found');
+        }
+        if (role.name === 'org_admin') {
+            throw new Error('You cannot assign the Organisation Admin role. Only a Super Admin can do this.');
+        }
+
+        const tempPassword = Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-4).toUpperCase() + '!';
+        const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+        const identityProvider = new FirebaseAdminService();
+        let firebaseUid = '';
+        try {
+            firebaseUid = await identityProvider.createUser(data.email, tempPassword);
+        } catch (error: any) {
+            if (error.code === 'auth/email-already-exists') {
+                await identityProvider.deleteUserByEmail(data.email);
+                firebaseUid = await identityProvider.createUser(data.email, tempPassword);
+            } else {
+                throw error;
+            }
+        }
+
+        const user = await prisma.user.create({
+            data: {
+                email: data.email,
+                full_name: data.full_name,
+                password_hash: passwordHash,
+                firebase_uid: firebaseUid,
+                organization_id: data.organization_id,
+                status: 'ACTIVE',
+                email_verified: false,
+                phone: data.phone,
+                user_roles: {
+                    create: {
+                        role_id: data.role_id
+                    }
+                },
+                staff_profile: {
+                    create: {
+                        organization_id: data.organization_id,
+                        employee_id: data.employee_id,
+                        job_title: data.job_title,
+                        department: data.department,
+                        employment_type: data.employment_type,
+                        start_date: data.start_date ? new Date(data.start_date) : undefined,
+                        responsibility_scope: data.responsibility_scope || {}
+                    }
+                }
+            },
+            include: {
+                user_roles: {
+                    include: {
+                        role: true
+                    }
+                }
+            }
+        });
+
+        // Send Welcome Email
+        const org = await prisma.organization.findUnique({ where: { id: data.organization_id } });
+        if (org) {
+            const emailService = new EmailService();
+            await emailService.sendStaffWelcomeEmail(data.email, {
+                name: data.full_name.split(' ')[0],
+                organization: org.name,
+                role: role.name,
+                temp_password: tempPassword
+            }).catch(err => console.error('Failed to send staff welcome email:', err));
+        }
+
+        return {
+            user,
+            tempPassword
+        };
+    }
+
+    /**
+     * Get full user profile
+     */
+    static async getUserProfile(userId: string) {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                staff_profile: true,
+                user_roles: {
+                    include: {
+                        role: {
+                            include: {
+                                permissions: {
+                                    include: {
+                                        permission: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!user) throw new Error('User not found');
+        return user;
+    }
+
+    /**
+     * Update user responsibilities
+     */
+    static async updateUserResponsibilities(userId: string, responsibility_scope: any) {
+        const profile = await prisma.staffProfile.findUnique({
+            where: { user_id: userId }
+        });
+
+        if (!profile) {
+            throw new Error('Staff profile not found for this user');
+        }
+
+        return prisma.staffProfile.update({
+            where: { user_id: userId },
+            data: { responsibility_scope }
+        });
     }
 }

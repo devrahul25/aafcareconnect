@@ -9,6 +9,7 @@ export class AuthorizationService {
   async can(req: AuthenticatedRequest, resource: string, action: string): Promise<boolean> {
     if (req.permissions) {
       if (req.permissions.has('system:root')) return true;
+      if (req.permissions.has('admin:manage')) return true; // Org Admin bypass
       return req.permissions.has(`${resource}:${action}`);
     }
     // Fallback to service if req context wasn't fully hydrated

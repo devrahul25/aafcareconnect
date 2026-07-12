@@ -185,4 +185,96 @@ export class UsersController {
             });
         }
     }
+
+    /**
+     * Invite a new staff user
+     */
+    static async inviteUser(req: Request, res: Response) {
+        try {
+            const { 
+                full_name, email, phone, role_id, 
+                employee_id, job_title, department, employment_type, start_date, 
+                responsibility_scope 
+            } = req.body;
+            const organization_id = req.user?.organization_id;
+
+            if (!organization_id) {
+                return res.status(401).json({ success: false, error: 'Unauthorized: No organization found.' });
+            }
+
+            if (!full_name || !email || !role_id) {
+                return res.status(400).json({ success: false, error: 'Missing required fields: full_name, email, role_id' });
+            }
+
+            const result = await UsersService.inviteUser({
+                full_name,
+                email,
+                phone,
+                role_id,
+                organization_id,
+                employee_id,
+                job_title,
+                department,
+                employment_type,
+                start_date,
+                responsibility_scope
+            });
+
+            res.status(201).json({
+                success: true,
+                data: result,
+                message: 'User invited successfully'
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message || 'Failed to invite user'
+            });
+        }
+    }
+
+    /**
+     * Get full user profile including StaffProfile
+     */
+    static async getUserProfile(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            const profile = await UsersService.getUserProfile(userId);
+            res.json({
+                success: true,
+                data: profile
+            });
+        } catch (error: any) {
+            res.status(404).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Update user responsibilities
+     */
+    static async updateUserResponsibilities(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            const { responsibility_scope } = req.body;
+            
+            if (!responsibility_scope) {
+                return res.status(400).json({ success: false, error: 'responsibility_scope is required' });
+            }
+
+            const updatedProfile = await UsersService.updateUserResponsibilities(userId, responsibility_scope);
+            res.json({
+                success: true,
+                data: updatedProfile,
+                message: 'Responsibilities updated successfully'
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
 }
