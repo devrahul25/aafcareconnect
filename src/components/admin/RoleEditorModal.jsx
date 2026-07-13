@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 export default function RoleEditorModal({ role, onClose, onSave }) {
   const [name, setName] = useState(role ? role.name : '');
   const [description, setDescription] = useState(role?.description || '');
-  const [selectedPerms, setSelectedPerms] = useState(new Set(role?.permissions || []));
+  const [selectedPerms, setSelectedPerms] = useState(new Set(role?.permissions?.map(rp => rp.permission_id) || []));
   const [allPerms, setAllPerms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -151,22 +151,24 @@ export default function RoleEditorModal({ role, onClose, onSave }) {
                       <h4 className="font-semibold text-slate-800 text-sm">{category}</h4>
                     </div>
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {categories[category].map(perm => (
-                        <label key={perm.id} className="flex items-start gap-3 cursor-pointer group">
-                          <div className="relative flex items-center justify-center mt-0.5">
+                      {categories[category].map(perm => {
+                        const hasPerm = selectedPerms.has(perm.id);
+                        return (
+                          <label key={perm.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
                             <input
                               type="checkbox"
-                              checked={selectedPerms.has(perm.id)}
+                              checked={hasPerm}
                               onChange={() => handleToggle(perm)}
-                              className="w-4 h-4 border-slate-300 rounded text-blue-600 focus:ring-blue-500"
+                              disabled={isSystem}
+                              className="mt-1 flex-shrink-0"
                             />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{perm.action}</p>
-                            <p className="text-xs text-slate-500">{perm.description}</p>
-                          </div>
-                        </label>
-                      ))}
+                            <div>
+                              <p className="text-sm font-medium text-slate-700">{perm.action}</p>
+                              <p className="text-xs text-slate-500">{perm.description}</p>
+                            </div>
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

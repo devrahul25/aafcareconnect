@@ -238,7 +238,7 @@ export class UsersController {
      */
     static async getUserProfile(req: Request, res: Response) {
         try {
-            const { userId } = req.params;
+            const userId = req.params.userId as string;
             const profile = await UsersService.getUserProfile(userId);
             res.json({
                 success: true,
@@ -257,7 +257,7 @@ export class UsersController {
      */
     static async updateUserResponsibilities(req: Request, res: Response) {
         try {
-            const { userId } = req.params;
+            const userId = req.params.userId as string;
             const { responsibility_scope } = req.body;
             
             if (!responsibility_scope) {
