@@ -113,6 +113,7 @@ export const authenticate = asyncHandler(
 
       next();
     } catch (error: any) {
+      console.error('Authentication Error Details:', error);
       if (error.code === 'auth/id-token-expired') {
         return next(new AppError('Token expired', 401, 'TOKEN_EXPIRED'));
       }

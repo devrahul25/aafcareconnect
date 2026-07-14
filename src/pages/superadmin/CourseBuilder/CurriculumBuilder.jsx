@@ -95,7 +95,7 @@ export default function CurriculumBuilder({ course, setSaveStatus }) {
             disabled={addModuleMutation.isPending}
             className="h-9 px-3 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-1.5 transition-colors shadow-sm"
           >
-            <Plus size={14} /> Assignment
+            <Plus size={14} /> Rich Text
           </button>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function CurriculumBuilder({ course, setSaveStatus }) {
               <HelpCircle size={16} /> Add Quiz
             </button>
             <button onClick={() => handleAddModule('RICH_TEXT')} className="h-9 px-4 text-sm font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center gap-2 transition-colors">
-              <Plus size={16} /> Add Assignment
+              <Plus size={16} /> Add Rich Text
             </button>
           </div>
         </div>

@@ -129,29 +129,83 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
         }
       });
 
-      // Create standard roles for this organization
-      const orgAdminRole = await tx.role.create({
-        data: {
-          organization_id: organization.id,
-          name: 'org_admin',
-          description: 'Organization Administrator',
-          is_system: true
-        }
-      });
-
-      await tx.role.createMany({
-        data: [
-          { organization_id: organization.id, name: 'manager', description: 'Manager', is_system: true },
-          { organization_id: organization.id, name: 'trainer', description: 'Trainer', is_system: true },
-          { organization_id: organization.id, name: 'learner', description: 'Learner', is_system: true },
+      // Define Role Permissions
+      const ROLE_PERMISSIONS: Record<string, { resource: string; action: string }[]> = {
+        org_admin: [
+          { resource: 'admin',      action: 'manage' },
+          { resource: 'users',      action: 'manage' },
+          { resource: 'users',      action: 'approve' },
+          { resource: 'courses',    action: 'manage' },
+          { resource: 'compliance', action: 'create' },
+          { resource: 'compliance', action: 'read' },
+          { resource: 'compliance', action: 'update' },
+          { resource: 'compliance', action: 'delete' },
+          { resource: 'storage',    action: 'upload' },
+          { resource: 'storage',    action: 'read' },
+        ],
+        manager: [
+          { resource: 'users',      action: 'read' },
+          { resource: 'users',      action: 'update' },
+          { resource: 'courses',    action: 'read' },
+          { resource: 'compliance', action: 'read' },
+          { resource: 'compliance', action: 'update' },
+          { resource: 'storage',    action: 'read' },
+        ],
+        trainer: [
+          { resource: 'courses',    action: 'create' },
+          { resource: 'courses',    action: 'read' },
+          { resource: 'courses',    action: 'update' },
+          { resource: 'storage',    action: 'upload' },
+          { resource: 'storage',    action: 'read' },
+        ],
+        learner: [
+          { resource: 'courses',    action: 'read' },
+          { resource: 'compliance', action: 'read' },
         ]
-      });
+      };
+
+      // Fetch all system permissions once
+      const allPermissions = await tx.permission.findMany();
+
+      // Create standard roles for this organization and assign permissions
+      const rolesToCreate = [
+        { name: 'org_admin', description: 'Organization Administrator' },
+        { name: 'manager', description: 'Manager' },
+        { name: 'trainer', description: 'Trainer' },
+        { name: 'learner', description: 'Learner' }
+      ];
+
+      let orgAdminRoleId = '';
+
+      for (const roleDef of rolesToCreate) {
+        // Find matching permission IDs for this role
+        const rolePerms = ROLE_PERMISSIONS[roleDef.name] || [];
+        const matchingPermIds = allPermissions
+          .filter(p => rolePerms.some(rp => rp.resource === p.resource && rp.action === p.action))
+          .map(p => ({ permission_id: p.id }));
+
+        const createdRole = await tx.role.create({
+          data: {
+            organization_id: organization.id,
+            name: roleDef.name,
+            description: roleDef.description,
+            is_system: true,
+            permissions: {
+              create: matchingPermIds
+            }
+          }
+        });
+
+        if (roleDef.name === 'org_admin') {
+          orgAdminRoleId = createdRole.id;
+        }
+      }
 
       // Assign org_admin role to the created user
       await tx.userRole.create({
         data: {
           user_id: user.id,
-          role_id: orgAdminRole.id
+          role_id: orgAdminRoleId
         }
       });
 
@@ -287,6 +341,8 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
     });
 
     if (Array.isArray(assigned_template_ids)) {
+      const templateIds: string[] = assigned_template_ids;
+
       // Find existing assigned templates
       const existingCourses = await prisma.course.findMany({
         where: {
@@ -295,14 +351,14 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
         }
       });
 
-      const existingTemplateIds = existingCourses.map(c => c.parent_template_id!);
+      const existingTemplateIds: string[] = existingCourses.map(c => c.parent_template_id as string);
 
       // Templates to add
-      const toAdd = assigned_template_ids.filter(tid => !existingTemplateIds.includes(tid));
+      const toAdd = templateIds.filter((tid: string) => !existingTemplateIds.includes(tid));
       
       // Templates to remove/archive
-      const toRemove = existingTemplateIds.filter(tid => !assigned_template_ids.includes(tid));
-      const toKeep = existingTemplateIds.filter(tid => assigned_template_ids.includes(tid));
+      const toRemove = existingTemplateIds.filter((tid: string) => !templateIds.includes(tid));
+      const toKeep = existingTemplateIds.filter((tid: string) => templateIds.includes(tid));
 
       // 1. Add new
       for (const templateId of toAdd) {
@@ -366,10 +422,24 @@ export const deleteOrganization = async (req: Request, res: Response): Promise<v
     }
 
     // 3. Delete from PostgreSQL in a transaction
-    // Because of onDelete: Restrict for Organization -> User, we MUST delete users first
+    // Because of onDelete: Restrict for Organization -> User, and self-referencing foreign keys, we MUST clean up first.
     await prisma.$transaction(async (tx) => {
-      // Subscriptions have onDelete: Cascade, so they are deleted automatically if we delete org,
-      // but users don't, so we delete users explicitly.
+      // Clear cyclic references that default to Restrict
+      await tx.user.updateMany({
+        where: { organization_id: id as string },
+        data: { approved_by: null }
+      });
+
+      await tx.fosterCarer.updateMany({
+        where: { organization_id: id as string },
+        data: { ssw_id: null }
+      });
+
+      // Delete child models that have Restrict constraints
+      await tx.course.deleteMany({
+        where: { organization_id: id as string }
+      });
+
       await tx.user.deleteMany({
         where: { organization_id: id as string }
       });

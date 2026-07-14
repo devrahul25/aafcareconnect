@@ -3,11 +3,20 @@ import { Search, Filter, MoreHorizontal, UserCog, Loader2 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiClient } from "@/api/apiClient";
 import { formatDistanceToNow } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import EditUserModal from "@/components/admin/EditUserModal";
+import { toast } from "@/components/ui/use-toast";
 
 export default function PlatformUsers() {
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -24,6 +33,26 @@ export default function PlatformUsers() {
     };
     fetchUsers();
   }, []);
+
+  const refreshUsers = async () => {
+    try {
+      const res = await apiClient.get('/users');
+      setUsers(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const toggleUserStatus = async (user) => {
+    try {
+      const newStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+      await apiClient.patch(`/users/${user.id}/status`, { status: newStatus });
+      toast({ title: "Success", description: `User status changed to ${newStatus}` });
+      refreshUsers();
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to update user status", variant: "destructive" });
+    }
+  };
 
   // Filter based on local search
   const filteredUsers = users.filter(user => 
@@ -118,12 +147,26 @@ export default function PlatformUsers() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button className="p-1.5 text-slate-400 hover:text-blue-600 rounded transition-colors" title="Edit User">
+                      <button 
+                        onClick={() => setEditingUser(u)}
+                        className="p-1.5 text-slate-400 hover:text-blue-600 rounded transition-colors" 
+                        title="Edit User Role"
+                      >
                         <UserCog size={16} />
                       </button>
-                      <button className="p-1.5 text-slate-400 hover:text-slate-900 rounded transition-colors" title="More Actions">
-                        <MoreHorizontal size={16} />
-                      </button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1.5 text-slate-400 hover:text-slate-900 rounded transition-colors focus:outline-none" title="More Actions">
+                            <MoreHorizontal size={16} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => toggleUserStatus(u)}>
+                            {u.status === 'ACTIVE' ? 'Suspend User' : 'Activate User'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
@@ -132,6 +175,17 @@ export default function PlatformUsers() {
           </table>
         </div>
       </div>
+
+      {editingUser && (
+        <EditUserModal 
+          user={editingUser} 
+          onClose={() => setEditingUser(null)} 
+          onSuccess={() => {
+            setEditingUser(null);
+            refreshUsers();
+          }} 
+        />
+      )}
     </div>
   );
 }

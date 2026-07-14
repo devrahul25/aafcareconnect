@@ -1,34 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Search, UserPlus, UserCog, Download, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiClient } from "@/api/apiClient";
 import UserDrawerEnhanced from "@/components/admin/UserDrawerEnhanced";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Learners({ orgId }) {
   const [search, setSearch] = useState("");
-  const [learners, setLearners] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedLearner, setSelectedLearner] = useState(null);
 
-  useEffect(() => {
-    const fetchLearners = async () => {
-      try {
-        setLoading(true);
-        const params = { role: 'learner' };
-        if (orgId) {
-          params.organization_id = orgId;
-        }
-        const res = await apiClient.get('/users', { params });
-        setLearners(res.data.data || []);
-      } catch (err) {
-        console.error("Failed to fetch learners:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLearners();
-  }, [orgId]);
+  const { data: learners = [], isLoading: loading } = useQuery({
+    queryKey: ['users', { orgId, role: 'learner' }],
+    queryFn: async () => {
+      const params = { role: 'learner' };
+      if (orgId) params.organization_id = orgId;
+      const res = await apiClient.get('/users', { params });
+      return res.data.data || [];
+    }
+  });
 
   return (
     <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">

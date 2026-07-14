@@ -12,6 +12,7 @@ export const requirePermission = (resource: string, action: string) => {
       const isAllowed = await authorizationService.can(req as unknown as AuthenticatedRequest, resource, action);
       
       if (!isAllowed) {
+        console.error(`Authorization Failed. User ID: ${req.user.id}, Required: ${resource}:${action}, Has: ${Array.from(req.permissions || [])}`);
         return res.status(403).json({ 
           success: false, 
           error: `Forbidden: Insufficient permissions for ${resource}:${action}`,
@@ -21,6 +22,7 @@ export const requirePermission = (resource: string, action: string) => {
 
       next();
     } catch (error) {
+      console.error('Authorization Middleware Error:', error);
       return res.status(500).json({ success: false, error: 'Internal Server Error during authorization' });
     }
   };

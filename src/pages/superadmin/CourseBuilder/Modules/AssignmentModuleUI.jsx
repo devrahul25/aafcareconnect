@@ -29,7 +29,7 @@ export default function AssignmentModuleUI({ section, courseId }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['template', courseId]);
-      toast({ title: "Saved", description: "Assignment updated." });
+      toast({ title: "Saved", description: "Rich Text updated." });
     }
   });
 
@@ -42,8 +42,8 @@ export default function AssignmentModuleUI({ section, courseId }) {
             <AlignLeft size={20} />
           </div>
           <div>
-            <h4 className="font-semibold text-slate-900">Assignment prompt</h4>
-            <p className="text-xs text-slate-500">Provide an open-ended question for learners to answer.</p>
+            <h4 className="font-semibold text-slate-900">Rich Text</h4>
+            <p className="text-xs text-slate-500">Provide rich text content or an open-ended question for learners.</p>
           </div>
         </div>
 
@@ -65,7 +65,7 @@ export default function AssignmentModuleUI({ section, courseId }) {
             disabled={!question || saveMutation.isPending}
             className="h-9 px-6 text-sm font-semibold text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
           >
-            {saveMutation.isPending ? 'Saving...' : 'Save Assignment'}
+            {saveMutation.isPending ? 'Saving...' : 'Save Rich Text'}
           </button>
         </div>
 

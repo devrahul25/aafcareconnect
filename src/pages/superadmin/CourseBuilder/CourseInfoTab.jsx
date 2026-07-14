@@ -2,10 +2,13 @@ import React, { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import debounce from "lodash/debounce";
-import { UploadCloud, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, Image as ImageIcon, Loader2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 export default function CourseInfoTab({ course, setSaveStatus }) {
   const queryClient = useQueryClient();
+  const fileInputRef = React.useRef(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [formData, setFormData] = useState({
     title: course.title || "",
@@ -46,12 +49,26 @@ export default function CourseInfoTab({ course, setSaveStatus }) {
     debouncedSave(newFormData);
   };
 
-  const handleMockImageUpload = () => {
-    const url = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
-    const newFormData = { ...formData, thumbnail_url: url };
-    setFormData(newFormData);
-    setSaveStatus("saving");
-    debouncedSave(newFormData);
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image size should be less than 2MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingImage(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      const newFormData = { ...formData, thumbnail_url: base64String };
+      setFormData(newFormData);
+      setSaveStatus("saving");
+      debouncedSave(newFormData);
+      setUploadingImage(false);
+    };
+    reader.readAsDataURL(file);
   };
 
 
@@ -82,11 +99,20 @@ export default function CourseInfoTab({ course, setSaveStatus }) {
               <p className="text-sm text-slate-500 leading-relaxed">
                 Upload a high-quality image to represent this course. Recommended size is 1200x675 pixels (16:9 ratio).
               </p>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+              />
               <button 
-                onClick={handleMockImageUpload}
-                className="h-9 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="h-9 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2 transition-colors disabled:opacity-50"
               >
-                <UploadCloud size={16} /> Choose Image
+                {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />} 
+                {uploadingImage ? 'Uploading...' : 'Choose Image'}
               </button>
             </div>
           </div>

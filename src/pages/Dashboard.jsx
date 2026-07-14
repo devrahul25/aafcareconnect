@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import {
   Users, BookOpen, CheckCircle2, Clock, AlertTriangle,
   TrendingUp, Award, ArrowRight, Download, UserPlus, Play,
-  Building2, Library, Bell
+  Building2, Library, Bell, Calendar
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -12,7 +13,7 @@ import {
 } from "recharts";
 import { getAgencyMetrics } from "@/lib/orgData";
 import { getAgencyMetrics as getDemoMetrics } from "@/lib/platformStore";
-import { tokenStorage } from "@/api/apiClient";
+import { tokenStorage, apiClient } from "@/api/apiClient";
 
 // ─── Chart data (static — not org-specific) ───────────────────────────────────
 const TREND_DATA = [
@@ -107,6 +108,18 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [organisationId, isSuperAdmin]);
 
+  const { data: learnerEnrolments = [] } = useQuery({
+    queryKey: ['learner-enrolments', user?.id],
+    queryFn: () => apiClient.get(`/course-enrolments?userId=${user?.id}`).then(res => res.data.data || []),
+    enabled: isLearner && !!user?.id
+  });
+
+  const { data: learnerCompliance = [] } = useQuery({
+    queryKey: ['learner-compliance', user?.id],
+    queryFn: () => apiClient.get(`/compliance-records?userId=${user?.id}`).then(res => res.data.data || []),
+    enabled: isLearner && !!user?.id
+  });
+
   const kpis = metrics ? [
     { label: "Active Learners",       value: String(metrics.total),          icon: Users,         bg: "bg-blue-600",    delta: "+2",     deltaLabel: "this week",    trend: "up"   },
     { label: "Fully Compliant Staff", value: String(metrics.fullyCompliant), icon: CheckCircle2,  bg: "bg-emerald-600", delta: "+1",     deltaLabel: "this month",   trend: "up"   },
@@ -117,7 +130,7 @@ export default function Dashboard() {
     { label: "Total CPD Hours",       value: `${metrics.totalCpdHours}h`,    icon: Award,         bg: "bg-violet-600",  delta: "+38h",   deltaLabel: "this month",   trend: "up"   },
   ] : [];
 
-  if (loading) {
+  if (loading && !isLearner) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
@@ -126,7 +139,148 @@ export default function Dashboard() {
   }
 
   if (isLearner) {
-    return <Navigate to="/learner/learning" replace />;
+    const inProgress = learnerEnrolments.filter(e => e.status === 'IN_PROGRESS');
+    const assigned = learnerEnrolments.filter(e => e.status === 'ENROLLED' || e.status === 'ASSIGNED');
+    const completed = learnerEnrolments.filter(e => e.status === 'COMPLETED');
+    
+    // Calculate total CPD hours from completed courses
+    const totalCPD = completed.reduce((acc, curr) => {
+      return acc + (curr.course?.duration_minutes ? curr.course.duration_minutes / 60 : 0);
+    }, 0);
+
+    // Get the most recently accessed course that is in progress
+    const continueCourse = inProgress.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+
+    return (
+      <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-heading font-bold text-2xl text-slate-900">Welcome back, {name} 👋</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Your Learner Dashboard · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/learner/learning">
+              <button className="h-9 px-4 text-sm font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
+                <BookOpen size={14}/> View All Courses
+              </button>
+            </Link>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Total Assigned</p>
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0"><BookOpen size={14} className="text-blue-600"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{assigned.length}</p>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">In Progress</p>
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0"><Clock size={14} className="text-amber-600"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{inProgress.length}</p>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">Completed</p>
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0"><CheckCircle2 size={14} className="text-emerald-600"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{completed.length}</p>
+          </div>
+          <div className="card p-4 flex flex-col gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-500 leading-tight">CPD Hours</p>
+              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0"><Award size={14} className="text-violet-600"/></div>
+            </div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{totalCPD.toFixed(1)}h</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Continue Learning Widget */}
+          <div className="lg:col-span-2 card p-5 flex flex-col">
+            <h2 className="font-heading font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Play size={16} className="text-blue-600" /> Continue Learning
+            </h2>
+            {continueCourse ? (
+              <div className="flex flex-col sm:flex-row gap-5 items-center">
+                <div className="w-full sm:w-48 h-32 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                   {continueCourse.course?.thumbnail_url ? (
+                      <img src={continueCourse.course.thumbnail_url} alt={continueCourse.course.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <BookOpen className="w-10 h-10 text-slate-300" />
+                    )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 mb-2">
+                      {continueCourse.course?.category || 'General'}
+                    </span>
+                    <h3 className="font-bold text-slate-900 leading-snug">{continueCourse.course?.title}</h3>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-bold">
+                    <span>Progress</span>
+                    <span>{continueCourse.progress_percent || 0}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${continueCourse.progress_percent || 0}%` }} />
+                  </div>
+                  <Link to={`/learning-hub/course/${continueCourse.course?.id}`} className="mt-2 inline-block">
+                    <button className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                      Resume Course
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+                <CheckCircle2 size={32} className="text-slate-300 mb-3" />
+                <p>You have no courses in progress.</p>
+                <Link to="/learner/learning" className="mt-3 text-sm text-blue-600 font-semibold hover:underline">
+                  Browse your assigned courses
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming Expiries Widget */}
+          <div className="card p-5">
+            <h2 className="font-heading font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <AlertTriangle size={16} className="text-amber-500" /> Compliance Alerts
+            </h2>
+            <div className="space-y-4">
+              {learnerCompliance.length > 0 ? (
+                learnerCompliance.slice(0, 4).map(record => {
+                  const isExpired = new Date(record.due_date || record.expiry_date) < new Date();
+                  return (
+                    <div key={record.id} className="flex items-start gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isExpired ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}>
+                        {isExpired ? <AlertTriangle size={14} /> : <Calendar size={14} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 leading-snug">{record.requirement_name}</p>
+                        <p className={`text-xs mt-0.5 ${isExpired ? 'text-red-500 font-medium' : 'text-slate-500'}`}>
+                          {isExpired ? 'Expired' : 'Due'}: {new Date(record.due_date || record.expiry_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-6 text-center text-sm text-slate-500 flex flex-col items-center">
+                  <CheckCircle2 size={24} className="text-emerald-400 mb-2" />
+                  No compliance alerts!
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (isTrainer) {

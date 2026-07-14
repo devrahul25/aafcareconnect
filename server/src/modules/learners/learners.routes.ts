@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { authenticate } from '../../middleware/authenticate';
-import { authorize } from '../../middleware/authorize';
+import { requireAuth } from '../auth/auth.middleware';
+import { requirePermission } from '../auth/authorization.middleware';
 import { LearnersController } from './learners.controller';
 
 const router = Router();
 
-// Only org_admin or super_admin can create learners
-router.post('/', authenticate, authorize('org_admin', 'super_admin'), LearnersController.createLearner);
+// Only users with 'users:manage' permission can create learners
+router.post('/', requireAuth, requirePermission('users', 'manage'), LearnersController.createLearner);
 
 export default router;
