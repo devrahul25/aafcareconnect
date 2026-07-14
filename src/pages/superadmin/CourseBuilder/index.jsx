@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Play, CheckCircle2, Layout, BookOpen, Award, Settings, Loader2 } from "lucide-react";
+import { ArrowLeft, Play, CheckCircle2, Layout, BookOpen, Award, Settings, Loader2, AlertCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/apiClient";
 import { toast } from "@/components/ui/use-toast";
@@ -9,6 +9,18 @@ import CourseInfoTab from "./CourseInfoTab";
 import CurriculumBuilder from "./CurriculumBuilder";
 import CertificateSettings from "./CertificateSettings";
 import CourseSettingsTab from "./CourseSettingsTab";
+
+const getLessons = (section) => {
+  if (!section) return [];
+  const all = [
+    ...(section.videos || []).map(v => ({ ...v, lessonType: 'VIDEO' })),
+    ...(section.documents || []).map(d => ({ ...d, lessonType: d.file_type === 'ZIP' ? 'DOWNLOAD' : 'DOCUMENT' })),
+    ...(section.rich_text_lessons || []).map(r => ({ ...r, lessonType: r.content?.startsWith('http') ? 'EXTERNAL_LINK' : 'RICH_TEXT' })),
+    ...(section.quizzes || []).map(q => ({ ...q, lessonType: 'QUIZ' }))
+  ];
+  return all;
+};
+
 
 export default function CourseBuilder() {
   const { courseId } = useParams();
@@ -92,10 +104,44 @@ export default function CourseBuilder() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
+  // Validation Logic
+  const validationErrors = [];
+  if (courseData) {
+    if (!courseData.title?.trim() || !courseData.category?.trim()) {
+      validationErrors.push("Course Information is incomplete (Title and Category required).");
+    }
+    if (!courseData.sections || courseData.sections.length === 0) {
+      validationErrors.push("At least one Module is required.");
+    } else {
+      courseData.sections.forEach((s, idx) => {
+        const lessons = getLessons(s);
+        if (lessons.length === 0) {
+          validationErrors.push(`Module ${idx + 1} (${s.title}) must contain at least one lesson.`);
+        }
+        lessons.forEach((l, lIdx) => {
+          if (l.lessonType === 'VIDEO' && !l.s3_key) {
+            validationErrors.push(`Module ${idx + 1}, Lesson ${lIdx + 1} (${l.title}): Missing video URL.`);
+          }
+          if ((l.lessonType === 'DOCUMENT' || l.lessonType === 'DOWNLOAD') && !l.s3_key) {
+            validationErrors.push(`Module ${idx + 1}, Lesson ${lIdx + 1} (${l.title}): Missing file.`);
+          }
+          if (l.lessonType === 'QUIZ' && (!l.questions || l.questions.length === 0)) {
+            validationErrors.push(`Module ${idx + 1}, Lesson ${lIdx + 1} (${l.title}): Quiz has no questions.`);
+          }
+        });
+      });
+    }
+    if (courseData.certificate_enabled && !courseData.certificate_title?.trim()) {
+      validationErrors.push("Certificate configuration is incomplete.");
+    }
+  }
+
+  const canPublish = courseData && validationErrors.length === 0 && courseData.status !== 'PUBLISHED';
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top Header */}
-      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-20">
+    <div className="h-[calc(100vh-64px)] flex flex-col bg-slate-50 relative">
+      {/* Top Navigation Bar */}
+      <header className="h-20 px-8 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/superadmin/course-library')}
@@ -129,13 +175,27 @@ export default function CourseBuilder() {
           <button className="h-9 px-4 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-2 transition-colors">
             <Play size={16} /> Preview
           </button>
-          <button 
-            onClick={() => publishMutation.mutate()}
-            disabled={publishMutation.isPending || courseData.status === 'PUBLISHED'}
-            className="h-9 px-5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {publishMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Publish Template'}
-          </button>
+          <div className="relative group">
+            <button 
+              onClick={() => publishMutation.mutate()}
+              disabled={publishMutation.isPending || !canPublish}
+              className="h-9 px-5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {publishMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Publish Template'}
+            </button>
+            {validationErrors.length > 0 && courseData.status !== 'PUBLISHED' && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-red-200 shadow-xl rounded-lg p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                <div className="flex items-center gap-2 text-red-600 mb-2 font-bold text-sm">
+                  <AlertCircle size={16} /> Cannot Publish Yet
+                </div>
+                <ul className="text-xs text-slate-600 space-y-1.5 list-disc pl-4">
+                  {validationErrors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

@@ -118,6 +118,43 @@ export class EnrolmentsRepository {
 
         return { total, enrolled, in_progress: inProgress, completed, failed };
     }
+
+    async getLearnerCourse(organizationId: string, userId: string, courseId: string) {
+        return prisma.courseEnrolment.findFirst({
+            where: {
+                organization_id: organizationId,
+                user_id: userId,
+                course_id: courseId,
+            },
+            include: {
+                lesson_progress: true,
+                module_progress: true,
+                course: {
+                    include: {
+                        sections: {
+                            orderBy: { sort_order: 'asc' },
+                            include: {
+                                videos: { orderBy: { sort_order: 'asc' } },
+                                documents: { orderBy: { sort_order: 'asc' } },
+                                rich_text_lessons: { orderBy: { sort_order: 'asc' } },
+                                quizzes: {
+                                    orderBy: { sort_order: 'asc' },
+                                    include: {
+                                        questions: {
+                                            orderBy: { sort_order: 'asc' },
+                                            include: {
+                                                answers: { orderBy: { sort_order: 'asc' } }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
 
 export const enrolmentsRepository = new EnrolmentsRepository();

@@ -65,11 +65,11 @@ export class PermissionService {
 
   /**
    * Check if a user has a specific permission.
-   * `system:root` automatically grants access to everything.
+   * `admin:manage` automatically grants access to everything.
    */
   async hasPermission(userId: string, resource: string, action: string): Promise<boolean> {
     const permissions = await this.getPermissions(userId);
-    if (permissions.has('system:root')) {
+    if (permissions.has('admin:manage')) {
       return true;
     }
     return permissions.has(`${resource}:${action}`);

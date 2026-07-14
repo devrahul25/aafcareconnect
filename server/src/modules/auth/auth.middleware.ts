@@ -51,7 +51,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     let fullName = 'Mock User';
 
     if (token === 'mock-super-admin-token') {
-      permissions = new Set(['system:root', 'admin:manage']);
+      permissions = new Set(['admin:manage', 'certificates:manage']);
       email = 'admin@demo.com';
       fullName = 'System Super Admin';
     } else if (token === 'mock-org-admin-token') {

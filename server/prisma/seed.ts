@@ -33,10 +33,13 @@ const ROLES = [
 
 // ─── Permission definitions ───────────────────────────────────────────────────
 const PERMISSIONS = [
-  // System
-  { resource: 'system',     action: 'root',    description: 'Full unrestricted access (super_admin only)' },
   // Admin (legacy authorize middleware check)
   { resource: 'admin',      action: 'manage',  description: 'Manage all admin features' },
+  // Certificates
+  { resource: 'certificates', action: 'create',  description: 'Issue new certificates' },
+  { resource: 'certificates', action: 'read',    description: 'View certificates' },
+  { resource: 'certificates', action: 'update',  description: 'Update certificates' },
+  { resource: 'certificates', action: 'delete',  description: 'Delete certificates' },
   // Users
   { resource: 'users',      action: 'create',  description: 'Create new users' },
   { resource: 'users',      action: 'read',    description: 'View users' },
@@ -65,8 +68,11 @@ type PermRef = { resource: string; action: string };
 
 const ROLE_PERMISSIONS: Record<string, PermRef[]> = {
   super_admin: [
-    { resource: 'system',     action: 'root' },
     { resource: 'admin',      action: 'manage' },
+    { resource: 'certificates', action: 'create' },
+    { resource: 'certificates', action: 'read' },
+    { resource: 'certificates', action: 'update' },
+    { resource: 'certificates', action: 'delete' },
   ],
   org_admin: [
     { resource: 'admin',      action: 'manage' },
@@ -120,6 +126,13 @@ async function main() {
     });
   }
   console.log(`✅ Organisation: ${demoOrg.name}`);
+
+  console.log('Upserting permissions...');
+  
+  // Cleanup old system:root permission
+  await prisma.permission.deleteMany({
+    where: { resource: 'system', action: 'root' }
+  });
 
   // 2. Upsert Permissions
   const permMap: Record<string, any> = {};

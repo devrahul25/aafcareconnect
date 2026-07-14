@@ -360,6 +360,7 @@ model CourseSection {
   documents         Document[]
   rich_text_lessons RichTextLesson[]
   quizzes           Quiz[]
+  module_progress   ModuleProgress[]
 
   @@index([organization_id])
   @@index([course_id])
@@ -561,6 +562,13 @@ enum EnrolmentStatus {
   FAILED
 }
 
+enum LessonStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+
 model CourseEnrolment {
   id               String          @id @default(uuid())
   organization_id  String
@@ -578,11 +586,49 @@ model CourseEnrolment {
   course Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  module_progress ModuleProgress[]
+  lesson_progress LessonProgress[]
+
   @@unique([course_id, user_id])
   @@index([organization_id])
   @@index([user_id])
   @@index([status])
   @@map("course_enrolments")
+}
+
+model ModuleProgress {
+  id              String          @id @default(uuid())
+  enrolment_id    String
+  module_id       String
+  status          LessonStatus    @default(NOT_STARTED)
+  completed_at    DateTime?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+
+  enrolment       CourseEnrolment @relation(fields: [enrolment_id], references: [id], onDelete: Cascade)
+  module          CourseSection   @relation(fields: [module_id], references: [id], onDelete: Cascade)
+
+  @@unique([enrolment_id, module_id])
+  @@map("module_progress")
+}
+
+model LessonProgress {
+  id              String          @id @default(uuid())
+  enrolment_id    String
+  lesson_id       String          
+  lesson_type     String          // e.g. VIDEO, DOCUMENT, RICH_TEXT, QUIZ
+  status          LessonStatus    @default(NOT_STARTED)
+  time_spent      Int             @default(0) // in seconds
+  quiz_score      Int?
+  last_viewed_at  DateTime?
+  completed_at    DateTime?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+
+  enrolment       CourseEnrolment @relation(fields: [enrolment_id], references: [id], onDelete: Cascade)
+
+  @@unique([enrolment_id, lesson_id, lesson_type])
+  @@map("lesson_progress")
 }
 
 // ─── COMPLIANCE RECORDS ───────────────────────────────────────────────────────

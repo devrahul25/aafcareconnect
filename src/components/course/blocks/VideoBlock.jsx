@@ -3,7 +3,7 @@ import { Play, Pause, Captions, FileText, Gauge, Sparkles, Volume2 } from "lucid
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
 
-export default function VideoBlock({ transcript, title }) {
+export default function VideoBlock({ transcript, title, url }) {
   const [playing, setPlaying] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showCaptions, setShowCaptions] = useState(true);
@@ -12,25 +12,31 @@ export default function VideoBlock({ transcript, title }) {
 
   return (
     <div className="rounded-xl overflow-hidden border border-slate-200">
-      {/* AI presenter video area */}
+      {/* AI presenter video area or Real Video */}
       <div className="relative flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 min-h-[260px]">
-        <div className="text-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-2xl shadow-blue-900/40">
-            <Sparkles size={28} className="text-white" />
-          </div>
-          <p className="text-white font-heading font-bold">AI Safeguarding Trainer</p>
-          <p className="text-blue-300 text-xs mt-0.5">{title}</p>
-          <button
-            onClick={() => setPlaying(!playing)}
-            className="mt-4 w-12 h-12 rounded-full bg-white/15 backdrop-blur border border-white/20 flex items-center justify-center hover:bg-white/25 transition mx-auto"
-          >
-            {playing ? <Pause size={20} className="text-white" /> : <Play size={20} className="text-white ml-0.5" />}
-          </button>
-        </div>
-        {showCaptions && playing && transcript && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-xl px-4 py-2 bg-black/70 rounded-lg text-white text-sm text-center leading-snug">
-            {transcript.slice(0, 120)}…
-          </div>
+        {url && url.includes('mp4') ? (
+            <video src={url} className="w-full h-full max-h-[400px] object-cover" controls autoPlay={playing} />
+        ) : (
+            <>
+                <div className="text-center p-8">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-2xl shadow-blue-900/40">
+                    <Sparkles size={28} className="text-white" />
+                  </div>
+                  <p className="text-white font-heading font-bold">AI Safeguarding Trainer</p>
+                  <p className="text-blue-300 text-xs mt-0.5">{title}</p>
+                  <button
+                    onClick={() => setPlaying(!playing)}
+                    className="mt-4 w-12 h-12 rounded-full bg-white/15 backdrop-blur border border-white/20 flex items-center justify-center hover:bg-white/25 transition mx-auto"
+                  >
+                    {playing ? <Pause size={20} className="text-white" /> : <Play size={20} className="text-white ml-0.5" />}
+                  </button>
+                </div>
+                {showCaptions && playing && transcript && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-xl px-4 py-2 bg-black/70 rounded-lg text-white text-sm text-center leading-snug">
+                    {transcript.slice(0, 120)}…
+                  </div>
+                )}
+            </>
         )}
       </div>
 

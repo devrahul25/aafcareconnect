@@ -1,49 +1,25 @@
-import { ChevronLeft, ChevronRight, Lightbulb } from "lucide-react";
-import KnowledgeCheck from "./KnowledgeCheck";
-import ScenarioLearning from "./ScenarioLearning";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import RichTextBlock from "./blocks/RichTextBlock";
-import ImageBlock from "./blocks/ImageBlock";
 import VideoBlock from "./blocks/VideoBlock";
 import PdfBlock from "./blocks/PdfBlock";
 import ResourceBlock from "./blocks/ResourceBlock";
-import KeyPointsBlock from "./blocks/KeyPointsBlock";
-import RecognisingNeglectLesson from "./neglect/RecognisingNeglectLesson";
 
-function Block({ block, index }) {
-  switch (block.type) {
-    case "rich_text":
-      return <RichTextBlock text={block.text} title={block.title} />;
-    case "image":
-      return <ImageBlock url={block.url} caption={block.caption} />;
-    case "video":
-      return <VideoBlock transcript={block.transcript} title={block.title} />;
-    case "key_points":
-      return <KeyPointsBlock points={block.points} />;
-    case "pdf":
-      return <PdfBlock url={block.url} title={block.title} />;
-    case "resource":
-      return <ResourceBlock title={block.title} fileType={block.fileType} />;
-    case "scenario":
-      return <ScenarioLearning lesson={{ title: block.title, scenario: block.scenario }} />;
-    case "knowledge_check":
-      return (
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-            <Lightbulb size={13} className="text-amber-500" /> Knowledge Check
-          </p>
-          <KnowledgeCheck question={block.question} />
-        </div>
-      );
+function Block({ lesson }) {
+  switch (lesson.type) {
+    case "RICH_TEXT":
+      return <RichTextBlock text={lesson.content} title={lesson.title} />;
+    case "VIDEO":
+      return <VideoBlock url={lesson.s3_key || lesson.cloudfront_url} title={lesson.title} />;
+    case "DOCUMENT":
+      return <PdfBlock url={lesson.s3_key || lesson.cloudfront_url} title={lesson.title} />;
+    case "DOWNLOAD":
+      return <ResourceBlock title={lesson.title} url={lesson.s3_key || lesson.cloudfront_url} fileType="download" />;
     default:
-      return null;
+      return <p className="text-sm text-slate-400">Unsupported lesson type.</p>;
   }
 }
 
 export default function LessonContent({ lesson, onPrev, onNext, isFirst, isLast, isCompleted }) {
-  if (lesson.id === "2-2") {
-    return <RecognisingNeglectLesson onPrev={onPrev} onNext={onNext} isFirst={isFirst} isLast={isLast} isCompleted={isCompleted} />;
-  }
-  const blocks = lesson.content || [];
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-slate-50">
       <div className="flex-1 overflow-y-auto">
@@ -51,14 +27,9 @@ export default function LessonContent({ lesson, onPrev, onNext, isFirst, isLast,
           <div>
             <p className="text-[11px] font-bold uppercase tracking-widest text-blue-600 mb-1">Lesson</p>
             <h1 className="font-heading font-bold text-2xl text-slate-900">{lesson.title}</h1>
-            <p className="text-sm text-slate-400 mt-1 flex items-center gap-1.5">{lesson.duration} · {blocks.length} sections</p>
+            <p className="text-sm text-slate-400 mt-1 flex items-center gap-1.5">{lesson.duration}</p>
           </div>
-          {blocks.map((b, i) => (
-            <Block key={i} block={b} index={i} />
-          ))}
-          {blocks.length === 0 && (
-            <p className="text-sm text-slate-400">No content available for this lesson yet.</p>
-          )}
+          <Block lesson={lesson} />
         </div>
       </div>
 

@@ -63,10 +63,70 @@ export class EnrolmentsService {
             progress_percent: 100,
             score,
             completed_date: new Date(),
-            status: score >= (enrolment.course.pass_mark || 80) ? 'COMPLETED' : 'FAILED',
+            status: score >= ((enrolment.course as any)?.pass_mark || 80) ? 'COMPLETED' : 'FAILED',
         };
 
         return enrolmentsRepository.update(organizationId, id, updateData);
+    }
+
+    async getLearnerCourse(organizationId: string, userId: string, courseId: string) {
+        const enrolment = await enrolmentsRepository.getLearnerCourse(organizationId, userId, courseId);
+        if (!enrolment) {
+            throw new AppError('Forbidden: You do not have an active enrolment for this course', 403, 'AUTH_FORBIDDEN');
+        }
+        
+        // Ensure status is active/enrolled, not revoked
+        if (enrolment.status === 'FAILED') {
+             throw new AppError('Forbidden: Your enrolment for this course is inactive or failed', 403, 'AUTH_FORBIDDEN');
+        }
+        return enrolment;
+    }
+
+    async updateLessonProgress(organizationId: string, userId: string, courseId: string, data: { lesson_id: string, lesson_type: string, status: string, time_spent?: number, quiz_score?: number }) {
+        // First get the enrolment
+        const enrolment = await enrolmentsRepository.findByUserAndCourse(organizationId, userId, courseId);
+        if (!enrolment) {
+            throw new AppError('Forbidden: Enrolment not found', 403, 'AUTH_FORBIDDEN');
+        }
+
+        // We use Prisma directly here because it's a specific sub-model update
+        const { prisma } = require('../../config/database');
+        
+        // Upsert the lesson progress
+        const lessonProgress = await prisma.lessonProgress.upsert({
+            where: {
+                enrolment_id_lesson_id_lesson_type: {
+                    enrolment_id: enrolment.id,
+                    lesson_id: data.lesson_id,
+                    lesson_type: data.lesson_type
+                }
+            },
+            update: {
+                status: data.status,
+                time_spent: data.time_spent ? { increment: data.time_spent } : undefined,
+                quiz_score: data.quiz_score ?? null,
+                last_viewed_at: new Date(),
+                completed_at: data.status === 'COMPLETED' ? new Date() : undefined,
+            },
+            create: {
+                enrolment_id: enrolment.id,
+                lesson_id: data.lesson_id,
+                lesson_type: data.lesson_type,
+                status: data.status,
+                time_spent: data.time_spent || 0,
+                quiz_score: data.quiz_score ?? null,
+                last_viewed_at: new Date(),
+                completed_at: data.status === 'COMPLETED' ? new Date() : undefined,
+            }
+        });
+
+        // Recalculate course progress
+        // Note: For a fully accurate calculation we'd need to know total lessons.
+        // The frontend will usually send the new `progress_percent` via the updateProgress endpoint, 
+        // but it's safer to have the frontend call `/progress` with the overall percent after this, 
+        // or we do it here if we count the lessons. For now, we rely on the client to update overall progress via the `/progress` endpoint.
+
+        return lessonProgress;
     }
 }
 

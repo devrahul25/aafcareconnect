@@ -51,3 +51,22 @@ export const completeEnrolment = asyncHandler(async (req: Request, res: Response
     );
     sendResponse(res, 200, enrolment);
 });
+
+export const getLearnerCourse = asyncHandler(async (req: Request, res: Response) => {
+    const enrolment = await enrolmentsService.getLearnerCourse(
+        req.organizationId!, 
+        req.user!.id, 
+        req.params.courseId as string
+    );
+    sendResponse(res, 200, enrolment);
+});
+
+export const updateLessonProgress = asyncHandler(async (req: Request, res: Response) => {
+    const progress = await enrolmentsService.updateLessonProgress(
+        req.organizationId!,
+        req.user!.id,
+        req.params.courseId as string,
+        req.body
+    );
+    sendResponse(res, 200, progress);
+});

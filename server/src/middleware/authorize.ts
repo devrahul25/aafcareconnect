@@ -15,11 +15,7 @@ export const authorize = (resource: string, action: string) => {
         for (const rp of ur.role.permissions) {
           const { resource: res, action: act } = rp.permission;
 
-          // system:root — super_admin bypass (all permissions granted)
-          if (res === 'system' && act === 'root') {
-            hasPermission = true;
-            break;
-          }
+
           // admin:manage — org_admin bypass (all permissions granted)
           if (res === 'admin' && act === 'manage') {
             hasPermission = true;
