@@ -293,4 +293,97 @@ export class UsersService {
             data: { responsibility_scope }
         });
     }
+
+    /**
+     * Get assigned learners
+     */
+    static async getAssignedLearners(staffId: string, organizationId: string) {
+        const assignments = await prisma.staffLearnerAssignment.findMany({
+            where: {
+                staff_id: staffId,
+                organization_id: organizationId
+            },
+            include: {
+                learner: {
+                    select: {
+                        id: true,
+                        full_name: true,
+                        email: true,
+                        status: true,
+                        avatar_url: true,
+                    }
+                }
+            },
+            orderBy: {
+                assigned_at: 'desc'
+            }
+        });
+
+        return assignments.map(a => ({
+            assignment_id: a.id,
+            assigned_at: a.assigned_at,
+            ...a.learner
+        }));
+    }
+
+    /**
+     * Assign learner to staff
+     */
+    static async assignLearner(staffId: string, learnerId: string, assignedById: string, organizationId: string) {
+        // Verify learner exists and belongs to org
+        const learner = await prisma.user.findFirst({
+            where: { id: learnerId, organization_id: organizationId }
+        });
+        if (!learner) throw new Error('Learner not found in this organization');
+
+        // Check if already assigned
+        const existing = await prisma.staffLearnerAssignment.findUnique({
+            where: {
+                staff_id_learner_id: {
+                    staff_id: staffId,
+                    learner_id: learnerId
+                }
+            }
+        });
+
+        if (existing) throw new Error('Learner is already assigned to this staff member');
+
+        return prisma.staffLearnerAssignment.create({
+            data: {
+                staff_id: staffId,
+                learner_id: learnerId,
+                assigned_by_id: assignedById,
+                organization_id: organizationId
+            }
+        });
+    }
+
+    /**
+     * Unassign learner from staff
+     */
+    static async unassignLearner(staffId: string, learnerId: string, organizationId: string) {
+        return prisma.staffLearnerAssignment.deleteMany({
+            where: {
+                staff_id: staffId,
+                learner_id: learnerId,
+                organization_id: organizationId
+            }
+        });
+    }
+
+    /**
+     * Get user activity logs
+     */
+    static async getUserActivityLogs(userId: string, organizationId: string) {
+        return prisma.auditLog.findMany({
+            where: {
+                user_id: userId,
+                organization_id: organizationId
+            },
+            orderBy: {
+                created_at: 'desc'
+            },
+            take: 50
+        });
+    }
 }

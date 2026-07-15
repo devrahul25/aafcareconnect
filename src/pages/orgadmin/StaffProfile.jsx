@@ -4,6 +4,10 @@ import { apiClient } from '@/api/apiClient';
 import PageHeader from '@/components/ui/PageHeader';
 import { Loader2, ArrowLeft, User, Briefcase, Shield, Target, FileText, Settings, BookOpen, Activity, ChevronRight, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import AssignedLearnersTab from './StaffProfileTabs/AssignedLearnersTab';
+import AssignedCoursesTab from './StaffProfileTabs/AssignedCoursesTab';
+import ActivityLogsTab from './StaffProfileTabs/ActivityLogsTab';
+import SettingsTab from './StaffProfileTabs/SettingsTab';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: User },
@@ -13,7 +17,6 @@ const TABS = [
   { id: 'learners', label: 'Assigned Learners', icon: User },
   { id: 'courses', label: 'Assigned Courses', icon: BookOpen },
   { id: 'activity', label: 'Activity Logs', icon: Activity },
-  { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -292,16 +295,11 @@ export default function StaffProfile() {
               </div>
             )}
 
-            {/* PLACEHOLDER TABS */}
-            {['learners', 'courses', 'activity', 'documents', 'settings'].includes(activeTab) && (
-              <div className="p-12 text-center">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                  <Target size={24} />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">Coming Soon</h3>
-                <p className="text-slate-500 text-sm">The {activeTab} feature is currently under development.</p>
-              </div>
-            )}
+            {/* NEW TABS */}
+            {activeTab === 'learners' && <AssignedLearnersTab staffId={id} />}
+            {activeTab === 'courses' && <AssignedCoursesTab staffId={id} />}
+            {activeTab === 'activity' && <ActivityLogsTab staffId={id} />}
+            {activeTab === 'settings' && <SettingsTab staffId={id} profile={profile} onUpdate={fetchProfile} />}
 
           </div>
         </div>

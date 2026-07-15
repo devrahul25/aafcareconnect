@@ -7,7 +7,6 @@ const STEPS = [
   'Personal Details',
   'Employment Details',
   'Assign Role',
-  'Assign Responsibilities',
   'Review'
 ];
 
@@ -195,41 +194,6 @@ export default function InviteStaffWizard({ onClose, onSuccess }) {
         );
       case 3:
         return (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
-              <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2 mb-1">
-                <Target size={16} /> Responsibility Scoping
-              </h4>
-              <p className="text-xs text-blue-800 leading-relaxed">
-                Define what this staff member manages. Even with "Manage Learners" permission, they will only see learners in the teams or departments defined here.
-              </p>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Assigned Teams</label>
-              <input type="text" placeholder="e.g. Team North, Fostering Team (comma separated)" 
-                defaultValue={formData.responsibility_scope.teams.join(', ')} 
-                onChange={(e) => handleScopeChange('teams', e.target.value)} 
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none transition-all" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Assigned Departments</label>
-              <input type="text" placeholder="e.g. Compliance, Safeguarding (comma separated)" 
-                defaultValue={formData.responsibility_scope.departments.join(', ')} 
-                onChange={(e) => handleScopeChange('departments', e.target.value)} 
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none transition-all" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Specific Learner IDs</label>
-              <input type="text" placeholder="e.g. LRN-123, LRN-456 (comma separated)" 
-                defaultValue={formData.responsibility_scope.learners.join(', ')} 
-                onChange={(e) => handleScopeChange('learners', e.target.value)} 
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-300 outline-none transition-all" />
-            </div>
-          </div>
-        );
-      case 4:
-        return (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 text-sm">
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
               <h4 className="font-bold text-slate-900 mb-2">Personal & Employment</h4>
@@ -244,14 +208,6 @@ export default function InviteStaffWizard({ onClose, onSuccess }) {
               <h4 className="font-bold text-slate-900 mb-2">Role & Access</h4>
               <div className="text-slate-600">
                 Assigned Role: <span className="font-semibold text-slate-900 uppercase">{roles.find(r => r.id === formData.role_id)?.name.replace(/_/g, ' ') || 'None'}</span>
-              </div>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-              <h4 className="font-bold text-slate-900 mb-2">Responsibility Scope</h4>
-              <div className="space-y-1 text-slate-600">
-                <div>Teams: {formData.responsibility_scope.teams.length > 0 ? <span className="font-semibold text-slate-900">{formData.responsibility_scope.teams.join(', ')}</span> : 'None'}</div>
-                <div>Departments: {formData.responsibility_scope.departments.length > 0 ? <span className="font-semibold text-slate-900">{formData.responsibility_scope.departments.join(', ')}</span> : 'None'}</div>
-                <div>Learners: {formData.responsibility_scope.learners.length > 0 ? <span className="font-semibold text-slate-900">{formData.responsibility_scope.learners.join(', ')}</span> : 'None'}</div>
               </div>
             </div>
           </div>

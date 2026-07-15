@@ -44,6 +44,30 @@ router.put(
     asyncHandler(UsersController.updateUserResponsibilities)
 );
 
+// Assigned Learners
+router.get(
+    '/:userId/assigned-learners',
+    requirePermission('users', 'read'),
+    asyncHandler(UsersController.getAssignedLearners)
+);
+router.post(
+    '/:userId/assigned-learners',
+    requirePermission('users', 'manage'),
+    asyncHandler(UsersController.assignLearner)
+);
+router.delete(
+    '/:userId/assigned-learners/:learnerId',
+    requirePermission('users', 'manage'),
+    asyncHandler(UsersController.unassignLearner)
+);
+
+// Activity Logs
+router.get(
+    '/:userId/activity',
+    requirePermission('users', 'read'),
+    asyncHandler(UsersController.getUserActivityLogs)
+);
+
 // Get user by ID
 router.get(
     '/:userId',

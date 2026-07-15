@@ -41,9 +41,15 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     token === 'mock-learner-token'
   ) {
     let orgId = 'mock-org-id';
+    let mockUserId = 'mock-user-id';
     try {
       const demoOrg = await prisma.organization.findFirst();
-      if (demoOrg) orgId = demoOrg.id;
+      if (demoOrg) {
+        orgId = demoOrg.id;
+        // Find a valid user in this org to avoid foreign key errors for created_by / assigned_by fields
+        const demoUser = await prisma.user.findFirst({ where: { organization_id: orgId } });
+        if (demoUser) mockUserId = demoUser.id;
+      }
     } catch (e) {}
 
     let permissions = new Set<string>();
@@ -74,7 +80,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
     const authReq = req as any;
     authReq.user = {
-      id: 'mock-user-id',
+      id: mockUserId,
       organization_id: orgId,
       status: 'ACTIVE',
       email: email,

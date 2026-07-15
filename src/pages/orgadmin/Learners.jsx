@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiClient } from "@/api/apiClient";
 import UserDrawerEnhanced from "@/components/admin/UserDrawerEnhanced";
+import RequirePermission from "@/components/RequirePermission";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Learners({ orgId }) {
@@ -30,9 +31,11 @@ export default function Learners({ orgId }) {
             <button className="h-9 px-4 text-sm font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 flex items-center gap-2 transition-colors">
               <Download size={16} /> Export
             </button>
-            <Link to="/orgadmin/learners/create" className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 transition-colors">
-              <UserPlus size={16} /> Create Learner
-            </Link>
+            <RequirePermission resource="learners" action="create">
+              <Link to="/orgadmin/learners/create" className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 transition-colors">
+                <UserPlus size={16} /> Create Learner
+              </Link>
+            </RequirePermission>
           </div>
         }
       />
@@ -109,29 +112,31 @@ export default function Learners({ orgId }) {
                     {l.last_login_at ? new Date(l.last_login_at).toLocaleDateString() : 'Never'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button 
-                      onClick={() => setSelectedLearner({
-                        id: l.id,
-                        name: l.full_name || 'User',
-                        role: 'Learner',
-                        passportId: l.id.substring(0, 8).toUpperCase(),
-                        riskLevel: 'low',
-                        complianceScore: l.metrics?.complianceScore || 0,
-                        certificates: l.metrics?.certificates || 0,
-                        cpdHours: l.metrics?.cpdHours || 0,
-                        mandatoryPct: l.metrics?.complianceScore || 0,
-                        skillsScore: 0,
-                        renewalsDue: 0,
-                        email: l.email || '',
-                        lastActivity: l.last_login_at ? new Date(l.last_login_at).toLocaleDateString() : 'Never',
-                        avatarColor: "bg-slate-600",
-                        avatar: l.full_name?.split(' ').map(n=>n[0]).join('') || 'U'
-                      })}
-                      className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors" 
-                      title="Manage Learner"
-                    >
-                      <UserCog size={16} />
-                    </button>
+                    <RequirePermission resource="learners" action="update">
+                      <button 
+                        onClick={() => setSelectedLearner({
+                          id: l.id,
+                          name: l.full_name || 'User',
+                          role: 'Learner',
+                          passportId: l.id.substring(0, 8).toUpperCase(),
+                          riskLevel: 'low',
+                          complianceScore: l.metrics?.complianceScore || 0,
+                          certificates: l.metrics?.certificates || 0,
+                          cpdHours: l.metrics?.cpdHours || 0,
+                          mandatoryPct: l.metrics?.complianceScore || 0,
+                          skillsScore: 0,
+                          renewalsDue: 0,
+                          email: l.email || '',
+                          lastActivity: l.last_login_at ? new Date(l.last_login_at).toLocaleDateString() : 'Never',
+                          avatarColor: "bg-slate-600",
+                          avatar: l.full_name?.split(' ').map(n=>n[0]).join('') || 'U'
+                        })}
+                        className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors" 
+                        title="Manage Learner"
+                      >
+                        <UserCog size={16} />
+                      </button>
+                    </RequirePermission>
                   </td>
                 </tr>
               ))}

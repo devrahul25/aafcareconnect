@@ -132,13 +132,14 @@ model Organization {
   updated_at          DateTime           @updatedAt
   deleted_at          DateTime?
 
-  users            User[]
-  roles            Role[]
-  courses          Course[]
-  audit_logs       AuditLog[]
-  subscriptions    Subscription[]
-  learner_profiles LearnerProfile[]
-  staff_profiles   StaffProfile[]
+  users                     User[]
+  roles                     Role[]
+  courses                   Course[]
+  audit_logs                AuditLog[]
+  subscriptions             Subscription[]
+  learner_profiles          LearnerProfile[]
+  staff_profiles            StaffProfile[]
+  staff_learner_assignments StaffLearnerAssignment[]
 
   @@map("organizations")
 }
@@ -223,11 +224,34 @@ model User {
   staff_profile            StaffProfile?
   supervised_carers        FosterCarer[]       @relation("SSWCarers")
   placements_as_ssw        Placement[]
+  assigned_learners        StaffLearnerAssignment[] @relation("StaffAssignments")
+  assigned_to_staff        StaffLearnerAssignment[] @relation("LearnerAssignments")
+  assignments_created      StaffLearnerAssignment[] @relation("AssignmentCreator")
 
   @@index([organization_id])
   @@index([organization_id, status])
   @@index([organization_id, created_at(sort: Desc)])
   @@map("users")
+}
+
+model StaffLearnerAssignment {
+  id              String   @id @default(uuid())
+  organization_id String
+  staff_id        String
+  learner_id      String
+  assigned_by_id  String?
+  assigned_at     DateTime @default(now())
+
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  staff        User         @relation("StaffAssignments", fields: [staff_id], references: [id], onDelete: Cascade)
+  learner      User         @relation("LearnerAssignments", fields: [learner_id], references: [id], onDelete: Cascade)
+  assigned_by  User?        @relation("AssignmentCreator", fields: [assigned_by_id], references: [id], onDelete: SetNull)
+
+  @@unique([staff_id, learner_id])
+  @@index([organization_id])
+  @@index([staff_id])
+  @@index([learner_id])
+  @@map("staff_learner_assignments")
 }
 
 // ─── ROLES & PERMISSIONS ──────────────────────────────────────────────────────

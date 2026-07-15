@@ -52,7 +52,12 @@ export class UsersRepository {
                         }
                     },
                     course_enrolments: true,
-                    cpd_certificates: true
+                    cpd_certificates: true,
+                    _count: {
+                        select: {
+                            assigned_learners: true
+                        }
+                    }
                 },
                 skip,
                 take,

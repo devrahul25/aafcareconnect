@@ -2,11 +2,11 @@ import { prisma } from '../../config/database';
 import { Prisma } from '@prisma/client';
 
 export class EnrolmentsRepository {
-    async findAll(organizationId: string, filter?: { userId?: string; courseId?: string; status?: string }) {
+    async findAll(organizationId: string, filter?: { userId?: string; user_id?: string; courseId?: string; course_id?: string; status?: string }) {
         const where: Prisma.CourseEnrolmentWhereInput = { organization_id: organizationId };
 
-        if (filter?.userId) where.user_id = filter.userId;
-        if (filter?.courseId) where.course_id = filter.courseId;
+        if (filter?.userId || filter?.user_id) where.user_id = filter.userId || filter.user_id;
+        if (filter?.courseId || filter?.course_id) where.course_id = filter.courseId || filter.course_id;
         if (filter?.status) where.status = filter.status as any;
 
         return prisma.courseEnrolment.findMany({

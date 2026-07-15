@@ -25,7 +25,11 @@ export class RolesService {
       name: role.name,
       description: role.description,
       is_system: role.is_system,
-      permissions: role.permissions.map(rp => rp.permission.resource + ':' + rp.permission.action)
+      permissions: role.permissions.map(rp => ({
+        permission_id: rp.permission_id,
+        resource: rp.permission.resource,
+        action: rp.permission.action
+      }))
     };
   }
 

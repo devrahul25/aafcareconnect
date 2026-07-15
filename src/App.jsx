@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/lib/AuthContext";
 
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import PermissionRoute from "@/components/PermissionRoute";
 
 // Layout
 import AppLayout from "@/components/layout/AppLayout";
@@ -110,15 +111,15 @@ const AuthenticatedApp = () => {
           <Route path="/compliance-hub" element={<ComplianceHub />} />
           
           {/* Org Admin Routes */}
-          <Route path="/orgadmin/learners" element={<OALearners />} />
-          <Route path="/orgadmin/learners/create" element={<ErrorBoundary><OACreateLearner /></ErrorBoundary>} />
-          <Route path="/orgadmin/staff" element={<OAStaff />} />
-          <Route path="/orgadmin/staff/:id" element={<OAStaffProfile />} />
-          <Route path="/orgadmin/courses" element={<OACourses />} />
-          <Route path="/orgadmin/reports" element={<OAReports />} />
-          <Route path="/orgadmin/settings" element={<ProtectedRoute requiredLevel={4}><OAOrganisationSettings /></ProtectedRoute>} />
-          <Route path="/orgadmin/roles" element={<ProtectedRoute requiredLevel={4}><OARolesPermissions /></ProtectedRoute>} />
-          <Route path="/orgadmin/notifications" element={<ProtectedRoute requiredLevel={4}><OANotifications /></ProtectedRoute>} />
+          <Route path="/orgadmin/learners" element={<PermissionRoute resource="learners" action="read"><OALearners /></PermissionRoute>} />
+          <Route path="/orgadmin/learners/create" element={<ErrorBoundary><PermissionRoute resource="learners" action="create"><OACreateLearner /></PermissionRoute></ErrorBoundary>} />
+          <Route path="/orgadmin/staff" element={<PermissionRoute resource="users" action="read"><OAStaff /></PermissionRoute>} />
+          <Route path="/orgadmin/staff/:id" element={<PermissionRoute resource="users" action="read"><OAStaffProfile /></PermissionRoute>} />
+          <Route path="/orgadmin/courses" element={<PermissionRoute resource="courses" action="read"><OACourses /></PermissionRoute>} />
+          <Route path="/orgadmin/reports" element={<PermissionRoute resource="reports" action="read"><OAReports /></PermissionRoute>} />
+          <Route path="/orgadmin/settings" element={<PermissionRoute resource="organization" action="manage"><OAOrganisationSettings /></PermissionRoute>} />
+          <Route path="/orgadmin/roles" element={<PermissionRoute resource="admin" action="manage"><OARolesPermissions /></PermissionRoute>} />
+          <Route path="/orgadmin/notifications" element={<PermissionRoute><OANotifications /></PermissionRoute>} />
 
           {/* Manager / Supervisor Routes (Level 3+) */}
           <Route path="/manager/learners" element={<ProtectedRoute requiredLevel={3}><MgrLearners /></ProtectedRoute>} />

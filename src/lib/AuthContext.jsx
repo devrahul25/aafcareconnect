@@ -265,8 +265,8 @@ export const AuthProvider = ({ children }) => {
    */
   const hasPermission = (resource, action) => {
     if (!user) return false;
-    // super_admin always passes
-    if (user.role === 'super_admin') return true;
+    // super_admin and org_admin always pass (org_admin has full rights within their org)
+    if (user.role === 'super_admin' || user.role === 'org_admin') return true;
     return (user.permissions || []).some(
       (p) => (p.resource === resource && (p.action === action || p.action === 'manage')) ||
               (p.resource === 'admin' && p.action === 'manage')

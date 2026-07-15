@@ -129,14 +129,14 @@ export default function Staff({ orgId }) {
                   <td className="px-4 py-3 text-slate-600">N/A</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wider">
-                      {s.role_type?.replace(/_/g, ' ') || 'Staff'}
+                      {s.user_roles?.[0]?.role?.name?.replace(/_/g, ' ') || s.role_type?.replace(/_/g, ' ') || 'Staff'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{s.email}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className="font-semibold text-slate-400">0%</span>
+                    <span className="font-semibold text-slate-400">{s.metrics?.complianceScore || 0}%</span>
                   </td>
-                  <td className="px-4 py-3 text-center font-medium text-slate-600">0</td>
+                  <td className="px-4 py-3 text-center font-medium text-slate-600">{s._count?.assigned_learners || 0}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
                       s.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'

@@ -58,6 +58,15 @@ export default function Dashboard() {
   const isTrainer = hasRole("trainer") && !isManager && !isOrgAdmin && !isSuperAdmin;
   const isLearner = !isSuperAdmin && !isOrgAdmin && !isManager && !isTrainer;
 
+  const getGreeting = () => {
+    const hourStr = new Date().toLocaleString("en-GB", { timeZone: "Europe/London", hour: "numeric", hour12: false });
+    const h = parseInt(hourStr, 10);
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+  const greeting = getGreeting();
+
   const [metrics, setMetrics] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -289,7 +298,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="font-heading font-bold text-2xl text-slate-900">Good morning, {name} 👋</h1>
+            <h1 className="font-heading font-bold text-2xl text-slate-900">{greeting}, {name} 👋</h1>
             <p className="text-slate-500 text-sm mt-0.5">Trainer Dashboard · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -413,7 +422,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="font-heading font-bold text-2xl text-slate-900">Good morning, {name} 👋</h1>
+            <h1 className="font-heading font-bold text-2xl text-slate-900">{greeting}, {name} 👋</h1>
             <p className="text-slate-500 text-sm mt-0.5">Manager Dashboard · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -691,7 +700,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-slate-900">Good morning, {name} 👋</h1>
+          <h1 className="font-heading font-bold text-2xl text-slate-900">{greeting}, {name} 👋</h1>
           <p className="text-slate-500 text-sm mt-0.5">Administrator Dashboard · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-slate-400 text-xs font-medium">AAF CareConnect™ — The UK's Connected Care Platform</p>

@@ -277,4 +277,94 @@ export class UsersController {
             });
         }
     }
+
+    /**
+     * Get assigned learners
+     */
+    static async getAssignedLearners(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            const organization_id = req.user?.organization_id;
+            const learners = await UsersService.getAssignedLearners(userId as string, organization_id as string);
+
+            res.json({
+                success: true,
+                data: learners
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Assign learner to staff
+     */
+    static async assignLearner(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            const { learner_id } = req.body;
+            const assigned_by_id = req.user?.id;
+            const organization_id = req.user?.organization_id;
+
+            const assignment = await UsersService.assignLearner(userId as string, learner_id as string, assigned_by_id as string, organization_id as string);
+
+            res.json({
+                success: true,
+                data: assignment,
+                message: 'Learner assigned successfully'
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Unassign learner from staff
+     */
+    static async unassignLearner(req: Request, res: Response) {
+        try {
+            const { userId, learnerId } = req.params;
+            const organization_id = req.user?.organization_id;
+
+            await UsersService.unassignLearner(userId as string, learnerId as string, organization_id as string);
+
+            res.json({
+                success: true,
+                message: 'Learner unassigned successfully'
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Get user activity logs
+     */
+    static async getUserActivityLogs(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            const organization_id = req.user?.organization_id;
+
+            const logs = await UsersService.getUserActivityLogs(userId as string, organization_id as string);
+
+            res.json({
+                success: true,
+                data: logs
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
 }

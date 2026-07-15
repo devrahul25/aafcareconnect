@@ -126,7 +126,8 @@ export default function RoleEditorModal({ role, onClose, onSave }) {
               <textarea
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 outline-none min-h-[80px] resize-none"
+                disabled={isSystem}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 outline-none min-h-[80px] resize-none disabled:bg-slate-100 disabled:text-slate-500"
                 placeholder="Briefly describe what this role does..."
               />
             </div>
@@ -159,7 +160,6 @@ export default function RoleEditorModal({ role, onClose, onSave }) {
                               type="checkbox"
                               checked={hasPerm}
                               onChange={() => handleToggle(perm)}
-                              disabled={isSystem}
                               className="mt-1 flex-shrink-0"
                             />
                             <div>

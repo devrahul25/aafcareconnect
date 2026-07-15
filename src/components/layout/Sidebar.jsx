@@ -9,38 +9,6 @@ import {
 import { useAuth } from "@/lib/AuthContext";
 
 /**
- * Navigation items for standard users and organization admins
- */
-const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard",        path: "/dashboard"             },
-  { icon: BookOpen,        label: "Learning Hub",     path: "/learning-hub"          },
-  { icon: Award,           label: "CPD & Certificates",path: "/cpd-certificates"    },
-  { icon: Briefcase,       label: "Pro Passport",     path: "/professional-passport" },
-  { icon: Shield,          label: "Compliance Hub",   path: "/compliance-hub",  minRole: "manager" },
-  { icon: PenTool,         label: "Course Builder",   path: "/course-builder",  minRole: "trainer" },
-  { icon: Settings,        label: "Administration",   path: "/admin",           minRole: "org_admin" },
-];
-
-/**
- * Navigation items exclusively for Organisation Admins
- */
-const ORG_ADMIN_NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard",           path: "/dashboard" },
-
-  { icon: Users,           label: "Learners",            path: "/orgadmin/learners" },
-  { icon: Briefcase,       label: "Staff",               path: "/orgadmin/staff" },
-  { icon: BookOpen,        label: "Courses",             path: "/orgadmin/courses" },
-  { icon: Award,           label: "CPD & Certificates",  path: "/cpd-certificates" },
-  { icon: Shield,          label: "Professional Passport",path: "/professional-passport" },
-  { icon: Shield,          label: "Compliance Hub",      path: "/compliance-hub" },
-  { icon: PieChart,        label: "Reports",             path: "/orgadmin/reports" },
-  { icon: Settings,        label: "Administration",      path: "/admin" },
-
-  { icon: Building2,       label: "Organisation Settings",path: "/orgadmin/settings" },
-  { icon: Bell,            label: "Notifications",       path: "/orgadmin/notifications" },
-];
-
-/**
  * Navigation items exclusively for Super Admins
  */
 const SUPER_ADMIN_NAV_ITEMS = [
@@ -56,48 +24,26 @@ const SUPER_ADMIN_NAV_ITEMS = [
 ];
 
 /**
- * Navigation items exclusively for Managers / Supervisors
+ * Unified Navigation items for Organization Users.
+ * Items will only be shown if the user has the required permission.
+ * Items without a requiredPermission are shown to everyone.
  */
-const MANAGER_NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard",          path: "/dashboard" },
-  { icon: Users,           label: "My Learners",        path: "/manager/learners" },
-  { icon: TrendingUp,      label: "Learning Progress",  path: "/manager/progress" },
-  { icon: BookOpen,        label: "Course Assignments", path: "/manager/assignments" },
-  { icon: Shield,          label: "Compliance Hub",     path: "/manager/compliance" },
-  { icon: Award,           label: "Certificates",       path: "/manager/certificates" },
-  { icon: FileText,        label: "Documents",          path: "/manager/documents" },
-  { icon: PieChart,        label: "Reports",            path: "/manager/reports" },
-  { icon: Bell,            label: "Notifications",      path: "/manager/notifications" },
-];
-
-/**
- * Navigation items exclusively for Trainers / Course Creators
- */
-const TRAINER_NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard",           path: "/dashboard" },
-  { icon: BookOpen,        label: "My Courses",          path: "/trainer/courses" },
-  { icon: PenTool,         label: "Course Builder",      path: "/course-builder" },
-  { icon: FileText,        label: "Lessons",             path: "/trainer/lessons" },
-  { icon: Award,           label: "Quizzes & Assessments",path: "/trainer/quizzes" },
-  { icon: BarChart3,       label: "Course Analytics",    path: "/trainer/analytics" },
-  { icon: Library,         label: "Resources",           path: "/trainer/resources" },
-  { icon: PenTool,         label: "Draft Courses",       path: "/trainer/drafts" },
-  { icon: Shield,          label: "Published Courses",   path: "/trainer/published" },
-  { icon: Bell,            label: "Notifications",       path: "/trainer/notifications" },
-];
-
-/**
- * Navigation items exclusively for Learners / Foster Carers
- */
-const LEARNER_NAV_ITEMS = [
+const ORG_NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard",             path: "/dashboard" },
-  { icon: BookOpen,        label: "My Learning",           path: "/learner/learning" },
-  { icon: Award,           label: "Certificates",          path: "/learner/certificates" },
-  { icon: History,         label: "CPD Record",            path: "/learner/cpd" },
-  { icon: Briefcase,       label: "Professional Passport", path: "/professional-passport" },
-  { icon: PenTool,         label: "Assessments",           path: "/learner/assessments" },
-  { icon: Bell,            label: "Notifications",         path: "/learner/notifications" },
-  { icon: Users,           label: "My Profile",            path: "/learner/profile" },
+  { icon: Users,           label: "Learners",              path: "/orgadmin/learners",      requiredPermission: { resource: "learners", action: "read" } },
+  { icon: Briefcase,       label: "Staff",                 path: "/orgadmin/staff",         requiredPermission: { resource: "users", action: "read" } },
+  { icon: BookOpen,        label: "Courses",               path: "/orgadmin/courses",       requiredPermission: { resource: "courses", action: "read" } },
+  { icon: PenTool,         label: "Course Builder",        path: "/course-builder",         requiredPermission: { resource: "courses", action: "manage" } },
+  { icon: Award,           label: "CPD & Certificates",    path: "/cpd-certificates",       requiredPermission: { resource: "certificates", action: "read" } },
+  { icon: Shield,          label: "Professional Passport", path: "/professional-passport",  requiredPermission: { resource: "compliance", action: "read" } },
+  { icon: ShieldAlert,     label: "Compliance Hub",        path: "/compliance-hub",         requiredPermission: { resource: "compliance", action: "read" } },
+  { icon: PieChart,        label: "Reports",               path: "/orgadmin/reports",       requiredPermission: { resource: "reports", action: "read" } },
+  { icon: Settings,        label: "Administration",        path: "/admin",                  requiredPermission: { resource: "admin", action: "manage" } },
+  { icon: Building2,       label: "Organisation Settings", path: "/orgadmin/settings",      requiredPermission: { resource: "organization", action: "manage" } },
+  { icon: Bell,            label: "Notifications",         path: "/orgadmin/notifications" },
+  
+  // Specific views for learners that should still be accessible if they don't have manage rights
+  { icon: BookOpen,        label: "My Learning",           path: "/learner/learning",       isLearnerOnly: true },
 ];
 
 const COMING_SOON = [
@@ -109,22 +55,26 @@ const COMING_SOON = [
 
 export default function Sidebar({ user, collapsed, setCollapsed }) {
   const location = useLocation();
-  const { logout, hasRole } = useAuth();
+  const { logout, hasRole, hasPermission } = useAuth();
   const isSuperAdmin = hasRole("super_admin");
-  const isOrgAdmin = hasRole("org_admin") && !isSuperAdmin;
-  const isManager = hasRole("manager") && !isOrgAdmin && !isSuperAdmin;
-  const isTrainer = hasRole("trainer") && !isManager && !isOrgAdmin && !isSuperAdmin;
-  const isLearner = !isSuperAdmin && !isOrgAdmin && !isManager && !isTrainer;
 
+  // Dynamically build visible items based on permissions
   const visibleItems = isSuperAdmin
     ? SUPER_ADMIN_NAV_ITEMS
-    : isOrgAdmin
-    ? ORG_ADMIN_NAV_ITEMS
-    : isManager
-    ? MANAGER_NAV_ITEMS
-    : isTrainer
-    ? TRAINER_NAV_ITEMS
-    : LEARNER_NAV_ITEMS;
+    : ORG_NAV_ITEMS.filter((item) => {
+        // If it requires a specific permission
+        if (item.requiredPermission) {
+          return hasPermission(item.requiredPermission.resource, item.requiredPermission.action);
+        }
+        
+        // If it's a learner-only item, only show it if they don't have manage rights (basic user)
+        if (item.isLearnerOnly) {
+           return !hasRole("manager") && !hasRole("org_admin") && !hasRole("trainer");
+        }
+        
+        // If no requirements, show to everyone
+        return true;
+      });
 
   return (
     <aside className={`sidebar flex flex-col h-screen sticky top-0 flex-shrink-0 transition-all duration-200 ${collapsed ? "w-[60px]" : "w-[220px]"} z-30`}>
