@@ -35,7 +35,7 @@ export default function CourseSettingsTab({ course, setSaveStatus }) {
     },
     onSuccess: (res) => {
       setSaveStatus("saved");
-      queryClient.setQueryData(['template', course.id], res);
+      queryClient.setQueryData(['template', course.id], res.data);
     },
     onError: () => {
       setSaveStatus("error");
@@ -45,23 +45,25 @@ export default function CourseSettingsTab({ course, setSaveStatus }) {
   const addCategoryMutation = useMutation({
     mutationFn: (name) => apiClient.post('/templates/categories', { name }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['course-categories']);
+      queryClient.invalidateQueries({ queryKey: ['course-categories'] });
       setNewCategoryName("");
       toast({ title: "Category added", description: "The course category has been created successfully." });
     },
     onError: (err) => {
-      toast({ title: "Error", description: err.message || "Failed to add category", variant: "destructive" });
+      const errorMsg = typeof err.message === 'string' ? err.message : 'Failed to add category';
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
     }
   });
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id) => apiClient.delete(`/templates/categories/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries(['course-categories']);
+      queryClient.invalidateQueries({ queryKey: ['course-categories'] });
       toast({ title: "Category deleted", description: "The course category has been removed." });
     },
     onError: (err) => {
-      toast({ title: "Error", description: err.message || "Failed to delete category", variant: "destructive" });
+      const errorMsg = typeof err.message === 'string' ? err.message : 'Failed to delete category';
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
     }
   });
 

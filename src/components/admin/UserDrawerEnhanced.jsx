@@ -24,20 +24,21 @@ const ROLE_LABELS = {
 
 export default function UserDrawerEnhanced({ user, onClose }) {
   const [innerTab, setInnerTab] = useState("overview");
-  if (!user) return null;
 
   const queryClient = useQueryClient();
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState("");
 
   const { data: certs = [] } = useQuery({
-    queryKey: ['compliance-records', user.id],
-    queryFn: () => apiClient.get(`/compliance-records?userId=${user.id}`).then(res => res.data.data || [])
+    queryKey: ['compliance-records', user?.id],
+    queryFn: () => apiClient.get(`/compliance-records?userId=${user.id}`).then(res => res.data.data || []),
+    enabled: !!user?.id
   });
 
   const { data: enrolments = [], refetch: refetchEnrolments } = useQuery({
-    queryKey: ['course-enrolments', user.id],
-    queryFn: () => apiClient.get(`/course-enrolments?userId=${user.id}`).then(res => res.data.data || [])
+    queryKey: ['course-enrolments', user?.id],
+    queryFn: () => apiClient.get(`/course-enrolments?userId=${user.id}`).then(res => res.data.data || []),
+    enabled: !!user?.id
   });
 
   const { data: allCourses = [] } = useQuery({
@@ -57,6 +58,8 @@ export default function UserDrawerEnhanced({ user, onClose }) {
       toast.error(err.response?.data?.error || "Failed to assign course");
     }
   });
+
+  if (!user) return null;
 
   const handleAssignCourse = () => {
     if (!selectedCourseId) return;

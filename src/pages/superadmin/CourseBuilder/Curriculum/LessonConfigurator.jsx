@@ -37,7 +37,9 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
       if (type === 'VIDEO') {
         endpoint = 'videos';
         payload.s3_key = url;
-        payload.duration_secs = duration ? parseInt(duration) * 60 : 0;
+        if (duration && parseInt(duration) > 0) {
+          payload.duration_secs = parseInt(duration) * 60;
+        }
       } else if (type === 'DOCUMENT' || type === 'DOWNLOAD') {
         endpoint = 'documents';
         payload.s3_key = url || 'dummy-url';
@@ -61,7 +63,9 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
       onSuccess();
     },
     onError: (err) => {
-      toast({ title: 'Error', description: err.response?.data?.error || 'Failed to save lesson', variant: 'destructive' });
+      const errorData = err.response?.data?.error;
+      const errorMsg = typeof errorData === 'string' ? errorData : errorData?.message || 'Failed to save lesson';
+      toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
     }
   });
 
@@ -229,7 +233,11 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
           </button>
           <button 
             onClick={() => saveMutation.mutate()} 
-            disabled={!title.trim() || saveMutation.isPending}
+            disabled={
+              title.trim().length < 3 || 
+              ((type === 'VIDEO' || type === 'DOCUMENT' || type === 'DOWNLOAD') && !url.trim()) ||
+              saveMutation.isPending
+            }
             className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save Lesson'}
@@ -251,7 +259,7 @@ function AddQuestionForm({ quizId, courseId, numQuestions }) {
     }),
     onSuccess: () => {
       setText("");
-      queryClient.invalidateQueries(['template', courseId]);
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       toast({ title: "Question added" });
     },
     onError: () => toast({ title: "Error", description: "Failed to add question", variant: "destructive" })
@@ -288,7 +296,7 @@ function QuestionEditor({ question, index, quizId, courseId }) {
 
   const deleteQuestionMutation = useMutation({
     mutationFn: () => apiClient.delete(`/templates/quizzes/${quizId}/questions/${question.id}`),
-    onSuccess: () => queryClient.invalidateQueries(['template', courseId])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', courseId] })
   });
 
   const addAnswerMutation = useMutation({
@@ -299,21 +307,21 @@ function QuestionEditor({ question, index, quizId, courseId }) {
     }),
     onSuccess: () => {
       setNewAnswerText("");
-      queryClient.invalidateQueries(['template', courseId]);
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
     },
     onError: () => toast({ title: "Error", description: "Failed to add answer", variant: "destructive" })
   });
 
   const deleteAnswerMutation = useMutation({
     mutationFn: (answerId) => apiClient.delete(`/templates/quizzes/${quizId}/questions/${question.id}/answers/${answerId}`),
-    onSuccess: () => queryClient.invalidateQueries(['template', courseId])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', courseId] })
   });
 
   const toggleCorrectMutation = useMutation({
     mutationFn: (answerId) => apiClient.patch(`/templates/quizzes/${quizId}/questions/${question.id}/answers/${answerId}`, {
       is_correct: true
     }),
-    onSuccess: () => queryClient.invalidateQueries(['template', courseId])
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', courseId] })
   });
 
   return (

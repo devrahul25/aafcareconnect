@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Plus, Building2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Building2, MoreHorizontal, Edit, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { tokenStorage } from "@/api/apiClient";
@@ -62,6 +62,33 @@ export default function Organisations() {
     } catch (error) {
       console.error(error);
       alert('An error occurred while deleting.');
+    }
+  };
+
+  const handleToggleArchive = async (org) => {
+    const newStatus = org.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED';
+    const action = org.status === 'SUSPENDED' ? 'reactivate' : 'archive';
+    
+    if (!window.confirm(`Are you sure you want to ${action} this organisation? ${action === 'archive' ? 'Users will no longer be able to log in.' : ''}`)) return;
+
+    try {
+      const res = await fetch(`/api/v1/organizations/${org.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenStorage.getAccessToken()}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success || res.ok) {
+        setOrganisations(prev => prev.map(o => o.id === org.id ? { ...o, status: newStatus } : o));
+      } else {
+        alert(data.error || `Failed to ${action} organisation`);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(`An error occurred while trying to ${action}.`);
     }
   };
 
@@ -161,7 +188,7 @@ export default function Organisations() {
                         {activeDropdown === org.id && (
                           <div 
                             ref={dropdownRef}
-                            className="absolute right-8 top-10 w-48 bg-white rounded-lg shadow-lg border border-slate-100 z-10 py-1 text-left animate-in fade-in zoom-in-95 duration-100"
+                            className="absolute right-8 top-10 w-56 bg-white rounded-lg shadow-lg border border-slate-100 z-10 py-1 text-left animate-in fade-in zoom-in-95 duration-100"
                           >
                             <button 
                               onClick={() => {
@@ -173,6 +200,25 @@ export default function Organisations() {
                             >
                               <Edit size={14} className="text-slate-400" />
                               Edit Organisation
+                            </button>
+                            <button 
+                              onClick={() => {
+                                handleToggleArchive(org);
+                                setActiveDropdown(null);
+                              }}
+                              className="w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            >
+                              {org.status === 'SUSPENDED' ? (
+                                <>
+                                  <ArchiveRestore size={14} className="text-slate-400" />
+                                  Unarchive Organisation
+                                </>
+                              ) : (
+                                <>
+                                  <Archive size={14} className="text-slate-400" />
+                                  Archive Organisation
+                                </>
+                              )}
                             </button>
                             <button 
                               onClick={() => {

@@ -33,7 +33,6 @@ const ORG_NAV_ITEMS = [
   { icon: Users,           label: "Learners",              path: "/orgadmin/learners",      requiredPermission: { resource: "learners", action: "read" } },
   { icon: Briefcase,       label: "Staff",                 path: "/orgadmin/staff",         requiredPermission: { resource: "users", action: "read" } },
   { icon: BookOpen,        label: "Courses",               path: "/orgadmin/courses",       requiredPermission: { resource: "courses", action: "read" } },
-  { icon: PenTool,         label: "Course Builder",        path: "/course-builder",         requiredPermission: { resource: "courses", action: "manage" } },
   { icon: Award,           label: "CPD & Certificates",    path: "/cpd-certificates",       requiredPermission: { resource: "certificates", action: "read" } },
   { icon: Shield,          label: "Professional Passport", path: "/professional-passport",  requiredPermission: { resource: "compliance", action: "read" } },
   { icon: ShieldAlert,     label: "Compliance Hub",        path: "/compliance-hub",         requiredPermission: { resource: "compliance", action: "read" } },

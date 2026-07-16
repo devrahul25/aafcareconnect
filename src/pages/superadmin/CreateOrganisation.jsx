@@ -40,7 +40,9 @@ export default function CreateOrganisation() {
       toast({ title: "Success", description: "Organisation type added." });
     },
     onError: (err) => {
-      toast({ title: "Error", description: err.response?.data?.error || "Failed to add type", variant: "destructive" });
+      const errorData = err.response?.data?.error;
+      const errorMsg = typeof errorData === 'string' ? errorData : errorData?.message || "Failed to add type";
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
     }
   });
 

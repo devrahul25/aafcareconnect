@@ -12,7 +12,8 @@ export const requirePermission = (resource: string, action: string) => {
       const isAllowed = await authorizationService.can(req as unknown as AuthenticatedRequest, resource, action);
       
       if (!isAllowed) {
-        console.error(`Authorization Failed. User ID: ${req.user.id}, Required: ${resource}:${action}, Has: ${Array.from(req.permissions || [])}`);
+        const authReq = req as any;
+        console.error(`Authorization Failed. User ID: ${authReq.user?.id}, Required: ${resource}:${action}, Has: ${Array.from(authReq.permissions || [])}`);
         return res.status(403).json({ 
           success: false, 
           error: `Forbidden: Insufficient permissions for ${resource}:${action}`,

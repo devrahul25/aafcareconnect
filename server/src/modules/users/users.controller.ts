@@ -180,7 +180,7 @@ export class UsersController {
      */
     static async updatePermissions(req: Request, res: Response) {
         try {
-            const { userId } = req.params;
+            const userId = req.params.userId as string;
             const { permission_ids } = req.body;
 
             if (!Array.isArray(permission_ids)) {

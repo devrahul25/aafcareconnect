@@ -24,10 +24,12 @@ export default function CoursePlayer() {
     queryFn: () => apiClient.get(`/course-enrolments/course/${courseId}/learner-view`).then(res => res.data.data),
     retry: false,
     onError: (err) => {
+      const errorData = err.response?.data?.error;
+      const errorMsg = typeof errorData === 'string' ? errorData : errorData?.message || "You don't have access to this course.";
       toast({
-        variant: "destructive",
         title: "Access Denied",
-        description: err.response?.data?.error || "You don't have access to this course."
+        description: errorMsg,
+        variant: "destructive"
       });
       navigate('/learning-hub/my-learning');
     }

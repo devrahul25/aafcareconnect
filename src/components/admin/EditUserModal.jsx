@@ -37,7 +37,9 @@ export default function EditUserModal({ user, onClose, onSuccess }) {
       toast({ title: 'Success', description: 'User role updated successfully' });
       onSuccess(); // Refresh list and close
     } catch (err) {
-      toast({ title: 'Error', description: err.response?.data?.error || 'Failed to update role', variant: 'destructive' });
+      const errorData = err.response?.data?.error;
+      const errorMsg = typeof errorData === 'string' ? errorData : errorData?.message || 'Failed to update role';
+      toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
     } finally {
       setSaving(false);
     }

@@ -29,6 +29,7 @@ import SAOrganisationWorkspace from "@/pages/superadmin/OrganisationWorkspace";
 import SAPlatformUsers from "@/pages/superadmin/PlatformUsers";
 import SACourseLibrary from "@/pages/superadmin/CourseLibrary";
 import SACourseBuilder from "@/pages/superadmin/CourseBuilder/index";
+import { SACourseBuilderErrorBoundary } from "@/components/SACourseBuilderErrorBoundary";
 import SASubscriptions from "@/pages/superadmin/Subscriptions";
 import SAReportsAnalytics from "@/pages/superadmin/ReportsAnalytics";
 import SAAuditLogs from "@/pages/superadmin/AuditLogs";
@@ -105,7 +106,6 @@ const AuthenticatedApp = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/learning-hub" element={<LearningHub />} />
           <Route path="/cpd-certificates" element={<CPDHub />} />
-          <Route path="/course-builder" element={<CourseBuilder />} />
           <Route path="/admin" element={<Administration />} />
           <Route path="/professional-passport" element={<ProfessionalPassport />} />
           <Route path="/compliance-hub" element={<ComplianceHub />} />
@@ -155,7 +155,7 @@ const AuthenticatedApp = () => {
           <Route path="/superadmin/organisations/:orgId/*" element={<ProtectedRoute requiredLevel={5}><SAOrganisationWorkspace /></ProtectedRoute>} />
           <Route path="/superadmin/users" element={<SAPlatformUsers />} />
           <Route path="/superadmin/course-library" element={<SACourseLibrary />} />
-          <Route path="/superadmin/course-builder/:courseId" element={<ProtectedRoute requiredLevel={5}><SACourseBuilder /></ProtectedRoute>} />
+          <Route path="/superadmin/course-builder/:courseId" element={<ProtectedRoute requiredLevel={5}><SACourseBuilderErrorBoundary><SACourseBuilder /></SACourseBuilderErrorBoundary></ProtectedRoute>} />
           <Route path="/superadmin/subscriptions" element={<SASubscriptions />} />
           <Route path="/superadmin/reports" element={<SAReportsAnalytics />} />
           <Route path="/superadmin/audit-logs" element={<SAAuditLogs />} />

@@ -193,11 +193,11 @@ export const getManagerDashboard = async (req: Request, res: Response): Promise<
     let complianceScore = 0;
     if (learnerIds.length > 0) {
       const totalCompliance = await prisma.complianceRecord.count({
-        where: { user_id: { in: learnerIds } }
+        where: { carer_id: { in: learnerIds } }
       });
       const resolvedCompliance = await prisma.complianceRecord.count({
         where: {
-          user_id: { in: learnerIds },
+          carer_id: { in: learnerIds },
           status: { in: ['RESOLVED', 'CLOSED'] }
         }
       });
