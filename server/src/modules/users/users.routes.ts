@@ -44,6 +44,13 @@ router.put(
     asyncHandler(UsersController.updateUserResponsibilities)
 );
 
+// Update user permissions
+router.patch(
+    '/:userId/permissions',
+    requirePermission('users', 'manage'),
+    asyncHandler(UsersController.updatePermissions)
+);
+
 // Assigned Learners
 router.get(
     '/:userId/assigned-learners',
@@ -73,6 +80,13 @@ router.get(
     '/:userId',
     requirePermission('users', 'manage'),
     asyncHandler(UsersController.getUser)
+);
+
+// Delete user
+router.delete(
+    '/:userId',
+    requirePermission('users', 'manage'),
+    asyncHandler(UsersController.deleteUser)
 );
 
 // Approve user

@@ -87,8 +87,6 @@ const ROLE_PERMISSIONS: Record<string, PermRef[]> = {
     { resource: 'storage',    action: 'read' },
   ],
   manager: [
-    { resource: 'users',      action: 'read' },
-    { resource: 'users',      action: 'update' },
     { resource: 'courses',    action: 'read' },
     { resource: 'compliance', action: 'read' },
     { resource: 'compliance', action: 'update' },

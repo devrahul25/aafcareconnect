@@ -88,7 +88,23 @@ export default function Dashboard() {
       return;
     }
 
-    if (isManager || isTrainer || isLearner) {
+    if (isManager) {
+      fetch('/api/v1/dashboard/manager', {
+        headers: { 'Authorization': `Bearer ${tokenStorage.getAccessToken()}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setMetrics(data.data);
+          setActivity(data.data.recentActivity || []);
+        }
+      })
+      .catch(err => console.error("Failed to fetch manager metrics:", err))
+      .finally(() => setLoading(false));
+      return;
+    }
+
+    if (isTrainer || isLearner) {
       setLoading(false);
       return;
     }
@@ -439,23 +455,23 @@ export default function Dashboard() {
               <p className="text-xs font-semibold text-slate-500 leading-tight">Assigned Learners</p>
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0"><Users size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">14</p>
-            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 1</span><span className="text-[11px] text-slate-400">new this week</span></div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.assignedLearners || 0}</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-400">total assigned</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-slate-500 leading-tight">Team Compliance</p>
               <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0"><TrendingUp size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">92%</p>
-            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-emerald-600">↑ 4%</span><span className="text-[11px] text-slate-400">vs last month</span></div>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.complianceScore || 0}%</p>
+            <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-400">avg score</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-slate-500 leading-tight">Certificates Expiring</p>
               <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0"><AlertTriangle size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">3</p>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.certificatesExpiring || 0}</p>
             <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-500">within 30 days</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
@@ -463,7 +479,7 @@ export default function Dashboard() {
               <p className="text-xs font-semibold text-slate-500 leading-tight">High Risk Learners</p>
               <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center flex-shrink-0"><AlertTriangle size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">1</p>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.highRiskLearners || 0}</p>
             <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-rose-600">action required</span></div>
           </div>
           <div className="card p-4 flex flex-col gap-3 min-w-0">
@@ -471,7 +487,7 @@ export default function Dashboard() {
               <p className="text-xs font-semibold text-slate-500 leading-tight">Pending Reviews</p>
               <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0"><Clock size={14} className="text-white"/></div>
             </div>
-            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">5</p>
+            <p className="font-heading font-bold text-2xl text-slate-900 leading-none">{metrics?.pendingReviews || 0}</p>
             <div className="flex items-center gap-1"><span className="text-[11px] font-bold text-slate-500">assignments</span></div>
           </div>
         </div>
@@ -512,27 +528,23 @@ export default function Dashboard() {
               <h2 className="font-heading font-bold text-slate-900">Recent Team Activity</h2>
             </div>
             <div className="space-y-0">
-              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-                <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">SJ</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Sarah Jenkins</span> completed <span className="font-semibold">First Aid</span></p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">10 mins ago</p>
+              {activity && activity.length > 0 ? activity.map((log, i) => (
+                <div key={log.id || i} className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">
+                    {log.user?.full_name?.split(' ').map(n=>n[0]).join('') || 'U'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-700 leading-snug">
+                      <span className="font-semibold text-slate-900">{log.user?.full_name || 'A user'}</span> {log.action} <span className="font-semibold">{log.resource}</span>
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{new Date(log.created_at).toLocaleString()}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">DM</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">David Miller</span> submitted a quiz</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">1 hour ago</p>
+              )) : (
+                <div className="py-6 text-center text-sm text-slate-500">
+                  No recent activity found.
                 </div>
-              </div>
-              <div className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-                <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5">EW</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-700 leading-snug"><span className="font-semibold text-slate-900">Emma Watson</span> has an expiring certificate</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">3 hours ago</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

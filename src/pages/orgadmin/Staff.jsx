@@ -3,6 +3,8 @@ import { Search, UserPlus, UserCog, Loader2, Settings, Trash2 } from "lucide-rea
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/ui/PageHeader";
 import { apiClient } from "@/api/apiClient";
+import toast from 'react-hot-toast';
+import { useAuth } from "@/lib/AuthContext";
 import RolesPermissions from "./RolesPermissions";
 import InviteStaffWizard from "@/components/admin/InviteStaffWizard";
 
@@ -13,6 +15,7 @@ export default function Staff({ orgId }) {
   const [activeTab, setActiveTab] = useState('staff');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
 
   const fetchStaff = async () => {
       try {
@@ -30,6 +33,18 @@ export default function Staff({ orgId }) {
       }
     };
 
+  const handleDeleteStaff = async (id, name) => {
+    if (window.confirm(`Are you sure you want to remove ${name} from your organisation? This action cannot be undone.`)) {
+      try {
+        await apiClient.delete(`/users/${id}`);
+        toast.success(`${name} has been removed.`);
+        fetchStaff();
+      } catch (err) {
+        toast.error(err.response?.data?.error || 'Failed to remove staff member');
+      }
+    }
+  };
+
   useEffect(() => {
     fetchStaff();
   }, [orgId]);
@@ -40,7 +55,7 @@ export default function Staff({ orgId }) {
         title="Staff & Permissions" 
         subtitle="Manage your organisation's administrative and support staff, and customize their roles"
         actions={
-          activeTab === 'staff' && (
+          activeTab === 'staff' && hasPermission("users", "create") && (
             <button 
               onClick={() => setIsInviteModalOpen(true)}
               className="h-9 px-4 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 transition-colors"
@@ -62,16 +77,18 @@ export default function Staff({ orgId }) {
         >
           Staff List
         </button>
-        <button
-          className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'roles' 
-              ? 'border-blue-600 text-blue-600' 
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-          onClick={() => setActiveTab('roles')}
-        >
-          Roles & Permissions
-        </button>
+        {(hasPermission("admin", "manage") || hasPermission("organization", "manage")) && (
+          <button
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'roles' 
+                ? 'border-blue-600 text-blue-600' 
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+            onClick={() => setActiveTab('roles')}
+          >
+            Roles & Permissions
+          </button>
+        )}
       </div>
 
       {activeTab === 'staff' ? (
@@ -145,12 +162,16 @@ export default function Staff({ orgId }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => navigate(`/orgadmin/staff/${s.id}`)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Manage Staff Profile">
-                      <Settings size={16} />
-                    </button>
-                    <button className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                      <Trash2 size={16} />
-                    </button>
+                    {(hasPermission("users", "update") || hasPermission("users", "manage")) && (
+                      <button onClick={() => navigate(`/orgadmin/staff/${s.id}`)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Manage Staff Profile">
+                        <Settings size={16} />
+                      </button>
+                    )}
+                    {(hasPermission("users", "delete") || hasPermission("users", "manage")) && (
+                      <button onClick={() => handleDeleteStaff(s.id, s.full_name || 'Staff')} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -24,6 +24,24 @@ export class AuthController {
     }
   }
 
+  /**
+   * Get the current authenticated user context and latest permissions.
+   * Useful for realtime syncing of custom permissions.
+   */
+  static async me(req: Request, res: Response) {
+    try {
+      const authReq = req as any;
+      res.status(200).json(
+        AuthSerializer.success({
+          user: authReq.user,
+          permissions: Array.from(authReq.permissions || [])
+        }, 'Current user context retrieved')
+      );
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: 'Internal server error', code: 'AUTH_INTERNAL_ERROR' });
+    }
+  }
+
   static async verifyOtp(req: Request, res: Response) {
     try {
       const { email, otpCode } = req.body;

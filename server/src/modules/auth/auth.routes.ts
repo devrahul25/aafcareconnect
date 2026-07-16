@@ -38,6 +38,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), AuthController.verifyOtp);
 router.post('/resend-otp', resendLimiter, validate(resendOtpSchema), AuthController.resendOtp);
 
 // Session Endpoints
+router.get('/me', requireAuth, AuthController.me);
 router.post('/refresh', refreshLimiter, validate(refreshSchema), AuthController.refresh);
 router.post('/logout', validate(logoutSchema), AuthController.logout);
 router.post('/logout-all', requireAuth, AuthController.logoutAll); // Enforces JWT validity + Session state

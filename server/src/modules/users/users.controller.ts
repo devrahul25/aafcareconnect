@@ -156,6 +156,55 @@ export class UsersController {
     }
 
     /**
+     * Delete user by ID
+     */
+    static async deleteUser(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            await UsersService.deleteUser(userId as string);
+
+            res.json({
+                success: true,
+                message: 'User deleted successfully'
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Update user permissions
+     */
+    static async updatePermissions(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+            const { permission_ids } = req.body;
+
+            if (!Array.isArray(permission_ids)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'permission_ids must be an array'
+                });
+            }
+
+            await UsersService.updateUserPermissions(userId, permission_ids);
+
+            res.json({
+                success: true,
+                message: 'User permissions updated successfully'
+            });
+        } catch (error: any) {
+            res.status(400).json({
+                success: false,
+                error: error.message
+            });
+        }
+    }
+
+    /**
      * Update user status (suspend/activate)
      */
     static async updateUserStatus(req: Request, res: Response) {

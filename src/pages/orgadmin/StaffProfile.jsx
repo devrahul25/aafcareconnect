@@ -8,6 +8,8 @@ import AssignedLearnersTab from './StaffProfileTabs/AssignedLearnersTab';
 import AssignedCoursesTab from './StaffProfileTabs/AssignedCoursesTab';
 import ActivityLogsTab from './StaffProfileTabs/ActivityLogsTab';
 import SettingsTab from './StaffProfileTabs/SettingsTab';
+import RoleEditorModal from '@/components/admin/RoleEditorModal';
+import UserPermissionEditorModal from '@/components/admin/UserPermissionEditorModal';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: User },
@@ -31,6 +33,13 @@ export default function StaffProfile() {
   const [editingScopes, setEditingScopes] = useState(false);
   const [scopeData, setScopeData] = useState({ teams: '', departments: '', learners: '' });
   const [savingScopes, setSavingScopes] = useState(false);
+
+  // Role Editor State
+  const [editingRole, setEditingRole] = useState(false);
+  const [newRoleId, setNewRoleId] = useState('');
+  const [savingRole, setSavingRole] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [isRolePermissionsModalOpen, setIsRolePermissionsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -74,6 +83,39 @@ export default function StaffProfile() {
       toast.error('Failed to update responsibilities');
     } finally {
       setSavingScopes(false);
+    }
+  };
+
+  const fetchAvailableRoles = async () => {
+    try {
+      const res = await apiClient.get('/roles');
+      setAvailableRoles(res.data.data.filter(r => r.name !== 'super_admin' && r.name !== 'org_admin') || []);
+    } catch (err) {
+      toast.error('Failed to load roles');
+    }
+  };
+
+  const handleEditRoleClick = () => {
+    fetchAvailableRoles();
+    setNewRoleId(profile?.user_roles?.[0]?.role_id || '');
+    setEditingRole(true);
+  };
+
+  const handleSaveRole = async () => {
+    if (!newRoleId) {
+      toast.error('Please select a role');
+      return;
+    }
+    try {
+      setSavingRole(true);
+      await apiClient.patch(`/users/${id}/role`, { role_id: newRoleId });
+      toast.success('Role updated successfully');
+      setEditingRole(false);
+      fetchProfile();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update role');
+    } finally {
+      setSavingRole(false);
     }
   };
 
@@ -194,30 +236,86 @@ export default function StaffProfile() {
             {/* ROLE & PERMISSIONS TAB */}
             {activeTab === 'role' && (
               <div className="p-8">
-                <h2 className="text-xl font-bold text-slate-900 mb-2">Role & Permissions</h2>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-xl font-bold text-slate-900">Role & Permissions</h2>
+                  {!editingRole ? (
+                    <button onClick={handleEditRoleClick} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-colors">
+                      Edit Role
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={() => setEditingRole(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
+                      <button onClick={handleSaveRole} disabled={savingRole} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-500 transition-colors flex items-center gap-2">
+                        {savingRole && <Loader2 size={16} className="animate-spin" />} Save Changes
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <p className="text-slate-500 text-sm mb-6">Permissions determine what actions this staff member can perform across the platform.</p>
                 
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-8">
                   <div className="text-sm font-bold text-blue-900 uppercase tracking-wider mb-1">Assigned Role</div>
-                  <div className="text-2xl font-bold text-blue-700 capitalize">{role?.name?.replace(/_/g, ' ') || 'No Role Assigned'}</div>
+                  {!editingRole ? (
+                    <div className="text-2xl font-bold text-blue-700 capitalize">{role?.name?.replace(/_/g, ' ') || 'No Role Assigned'}</div>
+                  ) : (
+                    <div className="mt-2">
+                      <select 
+                        value={newRoleId} 
+                        onChange={(e) => setNewRoleId(e.target.value)}
+                        className="w-full max-w-md bg-white border border-blue-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium capitalize"
+                      >
+                        <option value="">Select a role...</option>
+                        {availableRoles.map(r => (
+                          <option key={r.id} value={r.id}>{r.name.replace(/_/g, ' ')}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
-
-                <h3 className="font-bold text-slate-900 mb-4">Effective Permissions</h3>
+                
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-slate-900">Effective Permissions</h3>
+                  {role?.id && (
+                    <button 
+                      onClick={() => setIsRolePermissionsModalOpen(true)}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Edit Custom Permissions
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   {role?.permissions?.map((rp, i) => (
                     <div key={i} className="flex items-center gap-3 p-3 border border-slate-200 rounded-xl bg-slate-50">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0">
                         <Check size={16} />
                       </div>
                       <div>
                         <div className="text-sm font-bold text-slate-900 capitalize">{rp.permission.action} {rp.permission.resource}</div>
                         {rp.permission.description && <div className="text-xs text-slate-500">{rp.permission.description}</div>}
                       </div>
+                      <div className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Role</div>
                     </div>
                   ))}
-                  {!role?.permissions?.length && (
+                  {profile?.user_permissions?.map((up, i) => {
+                    // Check if it's already in the role so we don't duplicate visually
+                    if (role?.permissions?.find(rp => rp.permission_id === up.permission_id)) return null;
+                    return (
+                      <div key={`custom-${i}`} className="flex items-center gap-3 p-3 border border-blue-200 rounded-xl bg-blue-50">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
+                          <Check size={16} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-blue-900 capitalize">{up.permission.action} {up.permission.resource}</div>
+                          {up.permission.description && <div className="text-xs text-blue-600">{up.permission.description}</div>}
+                        </div>
+                        <div className="ml-auto text-[10px] font-bold text-blue-600 uppercase bg-blue-100 px-2 py-0.5 rounded">Custom</div>
+                      </div>
+                    );
+                  })}
+                  {!role?.permissions?.length && !profile?.user_permissions?.length && (
                     <div className="col-span-2 text-center p-8 border border-dashed border-slate-300 rounded-xl text-slate-500">
-                      No specific permissions attached to this role.
+                      No permissions attached to this user.
                     </div>
                   )}
                 </div>
@@ -304,6 +402,17 @@ export default function StaffProfile() {
           </div>
         </div>
       </div>
+
+      {isRolePermissionsModalOpen && (
+        <UserPermissionEditorModal 
+          profile={profile} 
+          onClose={() => setIsRolePermissionsModalOpen(false)} 
+          onSave={() => {
+            setIsRolePermissionsModalOpen(false);
+            fetchProfile();
+          }} 
+        />
+      )}
     </div>
   );
 }

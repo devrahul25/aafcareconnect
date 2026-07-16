@@ -4,6 +4,7 @@ import { prisma } from '../../config/database';
 import bcrypt from 'bcrypt';
 import { FirebaseAdminService } from '../../shared/providers/identity/firebase-admin.service';
 import { EmailService } from '../../shared/providers/email/email.service';
+import { permissionService } from '../auth/permission.service';
 
 export class UsersService {
 
@@ -130,6 +131,36 @@ export class UsersService {
         }
 
         return user;
+    }
+
+    /**
+     * Delete user by ID
+     */
+    static async deleteUser(userId: string) {
+        const user = await UsersRepository.findById(userId);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const identityProvider = new FirebaseAdminService();
+        if (user.email) {
+            try {
+                await identityProvider.deleteUserByEmail(user.email);
+            } catch (error) {
+                console.error(`Failed to delete user from Firebase Auth: ${user.email}`, error);
+            }
+        }
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                status: UserStatus.INACTIVE,
+                deleted_at: new Date()
+            }
+        });
+
+        return true;
     }
 
     /**
@@ -268,6 +299,11 @@ export class UsersService {
                             }
                         }
                     }
+                },
+                user_permissions: {
+                    include: {
+                        permission: true
+                    }
                 }
             }
         });
@@ -385,5 +421,30 @@ export class UsersService {
             },
             take: 50
         });
+    }
+
+    /**
+     * Update custom user permissions
+     */
+    static async updateUserPermissions(userId: string, permissionIds: string[]) {
+        // Delete all existing custom permissions
+        await prisma.userPermission.deleteMany({
+            where: { user_id: userId }
+        });
+
+        // Add new custom permissions
+        if (permissionIds.length > 0) {
+            await prisma.userPermission.createMany({
+                data: permissionIds.map(id => ({
+                    user_id: userId,
+                    permission_id: id
+                }))
+            });
+        }
+
+        // Invalidate the cache so new permissions take effect immediately
+        await permissionService.invalidatePermissions(userId);
+
+        return true;
     }
 }

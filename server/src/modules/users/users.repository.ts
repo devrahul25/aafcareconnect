@@ -16,7 +16,7 @@ export class UsersRepository {
     } = {}) {
         const { organisation_id, status, search, role, skip = 0, take = 50 } = filters;
 
-        const where: any = {};
+        const where: any = { deleted_at: null };
         if (organisation_id) where.organization_id = organisation_id;
         if (status) where.status = status;
         if (search) {

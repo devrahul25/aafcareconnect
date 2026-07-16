@@ -117,11 +117,16 @@ export const AuthProvider = ({ children }) => {
       if (accessToken && !isTokenExpired(accessToken)) {
         const payload = decodeJwtPayload(accessToken);
         if (payload) {
-          // Validate that the token has a valid session in the backend
+          // Validate that the token has a valid session in the backend and get realtime perms
           try {
-            await apiClient.get('/courses', { params: { limit: 1 } });
-            // Token is valid, set user
-            setUser(mapPayloadToUser(payload));
+            const res = await apiClient.get('/auth/me');
+            const realTimeUser = res.data.data;
+            
+            // Token is valid, set user with latest permissions
+            const userObj = mapPayloadToUser(payload);
+            userObj.permissions = realTimeUser.permissions || [];
+            
+            setUser(userObj);
             setIsAuthenticated(true);
             setIsLoadingAuth(false);
             return;
@@ -140,7 +145,16 @@ export const AuthProvider = ({ children }) => {
           tokenStorage.setTokens(access_token, newRefresh);
           const payload = decodeJwtPayload(access_token);
           if (payload) {
-            setUser(mapPayloadToUser(payload));
+            // Fetch real-time permissions after refresh
+            try {
+              const res = await apiClient.get('/auth/me');
+              const realTimeUser = res.data.data;
+              const userObj = mapPayloadToUser(payload);
+              userObj.permissions = realTimeUser.permissions || [];
+              setUser(userObj);
+            } catch (err) {
+              setUser(mapPayloadToUser(payload)); // fallback
+            }
             setIsAuthenticated(true);
           }
         } catch {
@@ -267,10 +281,43 @@ export const AuthProvider = ({ children }) => {
     if (!user) return false;
     // super_admin and org_admin always pass (org_admin has full rights within their org)
     if (user.role === 'super_admin' || user.role === 'org_admin') return true;
-    return (user.permissions || []).some(
-      (p) => (p.resource === resource && (p.action === action || p.action === 'manage')) ||
-              (p.resource === 'admin' && p.action === 'manage')
-    );
+    
+    const targetResource = (resource || '').toLowerCase();
+    const targetAction = (action || '').toLowerCase();
+
+    return (user.permissions || []).some((p) => {
+      // p is a string formatted as "resource:action" (e.g. "Learners:View Learners" or "courses:read")
+      if (typeof p !== 'string') return false;
+      const parts = p.split(':');
+      if (parts.length < 2) return false;
+      
+      const pRes = parts[0].trim().toLowerCase();
+      const pAct = parts.slice(1).join(':').trim().toLowerCase();
+
+      // Exact standard match
+      if (pRes === targetResource && (pAct === targetAction || pAct === 'manage')) return true;
+      if (pRes === 'admin' && pAct === 'manage') return true;
+
+      // Fuzzy match for custom user-created permissions (e.g. resource: 'Learners', action: 'View Learners')
+      
+      // Handle the case where UI uses "Staff" but code requires "users"
+      const isResourceMatch = pRes.includes(targetResource) || 
+                              (targetResource === 'users' && pRes.includes('staff')) ||
+                              (targetResource === 'staff' && pRes.includes('users'));
+
+      // Map 'read' to 'view'
+      if (targetAction === 'read' && (pAct.includes('view') || pAct.includes('read')) && isResourceMatch) return true;
+      
+      // Map specific actions
+      if (targetAction === 'create' && (pAct.includes('create') || pAct.includes('add')) && isResourceMatch) return true;
+      if (targetAction === 'update' && (pAct.includes('update') || pAct.includes('edit') || pAct.includes('modify')) && isResourceMatch) return true;
+      if (targetAction === 'delete' && (pAct.includes('delete') || pAct.includes('remove') || pAct.includes('trash')) && isResourceMatch) return true;
+
+      // Map 'manage' to 'edit', 'update', 'create', 'assign', 'delete'
+      if (targetAction === 'manage' && (pAct.includes('edit') || pAct.includes('update') || pAct.includes('create') || pAct.includes('manage') || pAct.includes('assign') || pAct.includes('delete')) && isResourceMatch) return true;
+
+      return false;
+    });
   };
 
   return (
