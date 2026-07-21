@@ -19,7 +19,16 @@ export default function CertificateSettings({ course, setSaveStatus }) {
     onMutate: () => setSaveStatus("saving"),
     onSuccess: (res) => {
       setSaveStatus("saved");
-      queryClient.setQueryData(['template', course.id], res.data);
+      queryClient.setQueryData(['template', course.id], (old) => {
+        if (!old) return res.data;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...res.data.data
+          }
+        };
+      });
     },
     onError: () => setSaveStatus("error")
   });

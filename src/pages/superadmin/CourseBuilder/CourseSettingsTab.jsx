@@ -35,7 +35,16 @@ export default function CourseSettingsTab({ course, setSaveStatus }) {
     },
     onSuccess: (res) => {
       setSaveStatus("saved");
-      queryClient.setQueryData(['template', course.id], res.data);
+      queryClient.setQueryData(['template', course.id], (old) => {
+        if (!old) return res.data;
+        return {
+          ...old,
+          data: {
+            ...old.data,
+            ...res.data.data
+          }
+        };
+      });
     },
     onError: () => {
       setSaveStatus("error");
