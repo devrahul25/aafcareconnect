@@ -69,6 +69,9 @@ export default function InviteStaffWizard({ onClose, onSuccess }) {
   const handleNext = () => {
     if (currentStep === 0) {
       if (!formData.full_name || !formData.email) return toast.error("Name and Email are required");
+      if (formData.phone && formData.phone.replace(/\D/g, '').length < 11) {
+        return toast.error("Phone number must contain at least 11 digits");
+      }
     }
     if (currentStep === 1) {
       if (!formData.job_title || !formData.department) return toast.error("Job Title and Department are required");

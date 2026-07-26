@@ -108,10 +108,18 @@ export default function CreateOrganisation() {
         alert("Please fill in all required organisation fields (Name, Email, Phone).");
         return;
       }
+      if (formData.phone.replace(/\D/g, '').length < 11) {
+        alert("Organisation Phone number must contain at least 11 digits.");
+        return;
+      }
     }
     if (currentStep === 2) {
       if (!formData.admin_name || !formData.admin_email || !formData.admin_phone) {
         alert("Please fill in all required administrator fields (Name, Email, Phone).");
+        return;
+      }
+      if (formData.admin_phone.replace(/\D/g, '').length < 11) {
+        alert("Administrator Phone number must contain at least 11 digits.");
         return;
       }
     }

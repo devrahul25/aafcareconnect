@@ -24,7 +24,6 @@ export default function CreateLearner() {
     email: "",
     phone: "",
     gender: "",
-    date_of_birth: "",
     
     employee_id: "",
     job_role: "",
@@ -74,6 +73,10 @@ export default function CreateLearner() {
     if (currentStep === 1) {
       if (!formData.first_name || !formData.last_name || !formData.email) {
         toast({ title: "Validation Error", description: "Please fill in all required fields.", variant: "destructive" });
+        return;
+      }
+      if (formData.phone && formData.phone.replace(/\D/g, '').length < 11) {
+        toast({ title: "Validation Error", description: "Mobile Number must contain at least 11 digits.", variant: "destructive" });
         return;
       }
     }
@@ -180,13 +183,9 @@ export default function CreateLearner() {
                   <label className="text-sm font-medium text-slate-700">Email Address *</label>
                   <input type="email" value={formData.email} onChange={e => updateForm('email', e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm" placeholder="jane.doe@example.com" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 col-span-2">
                   <label className="text-sm font-medium text-slate-700">Mobile Number</label>
                   <input type="tel" value={formData.phone} onChange={e => updateForm('phone', e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm" placeholder="+44..." />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">Date of Birth</label>
-                  <input type="date" value={formData.date_of_birth} onChange={e => updateForm('date_of_birth', e.target.value)} className="w-full h-10 px-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-100 outline-none text-sm" />
                 </div>
               </div>
             </div>
