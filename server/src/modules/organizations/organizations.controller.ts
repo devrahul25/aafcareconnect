@@ -4,8 +4,10 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { firebaseAuth } from '../../config/firebase';
 import { CoursesService } from '../courses/courses.service';
+import { EmailService } from '../../shared/providers/email/email.service';
 
 const coursesService = new CoursesService();
+const emailService = new EmailService();
 
 // --- Organization Types ---
 
@@ -228,55 +230,17 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
       }
     }
 
-    let previewUrl = null;
     try {
-      // 4. Send Welcome Email via Nodemailer (Ethereal for local dev)
-      const nodemailer = require('nodemailer');
-      
-      // Create a test account on the fly for local development
-      // In production, you would use your SendGrid/Resend SMTP transport
-      const testAccount = await nodemailer.createTestAccount();
-      const transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false, 
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
+      const emailService = new EmailService();
+      await emailService.sendOrganizationWelcomeEmail(admin_email, {
+        name,
+        admin_name,
+        temp_password: tempPassword,
+        org_id: `ORG-${result.organization.id.substring(0, 6).toUpperCase()}`
       });
-
-      const info = await transporter.sendMail({
-        from: '"AAF CareConnect" <no-reply@aafcareconnect.com>',
-        to: admin_email,
-        subject: "Welcome to AAF CareConnect",
-        text: `Hello ${admin_name},
-
-Your organisation has been successfully created.
-Organisation: ${name}
-Organisation ID: ORG-${result.organization.id.substring(0, 6).toUpperCase()}
-Email: ${admin_email}
-Temporary Password: ${tempPassword}
-Login URL: https://app.aafcareconnect.com/login
-
-For security, you will be required to change your password after your first login.`,
-        html: `<h3>Hello ${admin_name},</h3>
-        <p>Your organisation has been successfully created.</p>
-        <ul>
-          <li><b>Organisation:</b> ${name}</li>
-          <li><b>Organisation ID:</b> ORG-${result.organization.id.substring(0, 6).toUpperCase()}</li>
-          <li><b>Email:</b> ${admin_email}</li>
-          <li><b>Temporary Password:</b> ${tempPassword}</li>
-        </ul>
-        <p><a href="https://app.aafcareconnect.com/login">Click here to Login</a></p>
-        <p><i>For security, you will be required to change your password after your first login.</i></p>`,
-      });
-
-      previewUrl = nodemailer.getTestMessageUrl(info);
-      console.log("Email sent: %s", info.messageId);
-      console.log("Preview URL: %s", previewUrl);
+      console.log("Organization welcome email sent to", admin_email);
     } catch (emailError) {
-      console.error("Failed to send welcome email via Ethereal:", emailError);
+      console.error("Failed to send welcome email:", emailError);
       // We don't fail the request since the user/org is already created.
     }
 
@@ -291,7 +255,7 @@ For security, you will be required to change your password after your first logi
         },
         subscription: result.subscription,
         tempPassword, // Returning just for the frontend prototype to show in the success modal/alert
-        emailPreviewUrl: previewUrl
+        emailPreviewUrl: null
       }
     });
   } catch (error: any) {
