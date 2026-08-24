@@ -112,21 +112,30 @@ export default function Dashboard() {
     if (!organisationId) {
       // Demo fallback
       const m = getDemoMetrics();
-      setMetrics(m);
+      setMetrics({
+        ...m,
+        trendData: TREND_DATA,
+        expiryData: EXPIRY_DATA,
+        complianceData: COMPLIANCE
+      });
       setActivity(buildDemoActivity());
       setLoading(false);
       return;
     }
-    getAgencyMetrics(organisationId)
-      .then(m => {
-        setMetrics(m);
-        setActivity([]);
+    
+    apiClient.get(`/dashboard/organization/${organisationId}`)
+      .then(res => {
+        if (res.data.success) {
+          setMetrics(res.data.data);
+          setActivity([]); // TODO: Add audit logs when available in endpoint
+        }
       })
-      .catch(() => {
-        // Fallback to empty metrics instead of demo data
+      .catch(err => {
+        console.error("Failed to fetch org dashboard:", err);
         setMetrics({
           total: 0, fullyCompliant: 0, expiring: 0, expired: 0, 
-          highRisk: 0, avgCompliance: 0, totalCpdHours: 0
+          highRisk: 0, avgCompliance: 0, totalCpdHours: 0,
+          trendData: [], expiryData: [], complianceData: []
         });
         setActivity([]);
       })
@@ -771,7 +780,7 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"/>Completed</span>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={TREND_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <AreaChart data={metrics?.trendData || TREND_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradAssigned" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
@@ -802,7 +811,7 @@ export default function Dashboard() {
             <Link to="/cpd-certificates" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">View all <ArrowRight size={11}/></Link>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={EXPIRY_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <BarChart data={metrics?.expiryData || EXPIRY_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
@@ -826,7 +835,7 @@ export default function Dashboard() {
             <Link to="/cpd-certificates" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">Full report <ArrowRight size={11}/></Link>
           </div>
           <div className="space-y-4">
-            {COMPLIANCE.map(({ label, pct }) => (
+            {(metrics?.complianceData || COMPLIANCE).map(({ label, pct }) => (
               <div key={label}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">

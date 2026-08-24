@@ -107,7 +107,22 @@ export const AuthProvider = ({ children }) => {
         }
 
         const mockPayload = { sub: 'mock-id', email, full_name: fullName, role };
-        setUser(mapPayloadToUser(mockPayload));
+        const userObj = mapPayloadToUser(mockPayload);
+        
+        try {
+          const res = await apiClient.get('/auth/me');
+          const realTimeUser = res.data.data;
+          userObj.permissions = realTimeUser.permissions || [];
+          if (realTimeUser.user) {
+            userObj.organization_id = realTimeUser.user.organization_id || userObj.organization_id;
+            userObj.full_name = realTimeUser.user.full_name || userObj.full_name;
+            userObj.id = realTimeUser.user.id || userObj.id;
+          }
+        } catch (e) {
+          console.warn("Failed to fetch real-time user for mock token", e);
+        }
+
+        setUser(userObj);
         setIsAuthenticated(true);
         setIsLoadingAuth(false);
         return;
@@ -125,6 +140,10 @@ export const AuthProvider = ({ children }) => {
             // Token is valid, set user with latest permissions
             const userObj = mapPayloadToUser(payload);
             userObj.permissions = realTimeUser.permissions || [];
+            if (realTimeUser.user) {
+              userObj.organization_id = realTimeUser.user.organization_id || userObj.organization_id;
+              userObj.full_name = realTimeUser.user.full_name || userObj.full_name;
+            }
             
             setUser(userObj);
             setIsAuthenticated(true);
@@ -151,6 +170,10 @@ export const AuthProvider = ({ children }) => {
               const realTimeUser = res.data.data;
               const userObj = mapPayloadToUser(payload);
               userObj.permissions = realTimeUser.permissions || [];
+              if (realTimeUser.user) {
+                userObj.organization_id = realTimeUser.user.organization_id || userObj.organization_id;
+                userObj.full_name = realTimeUser.user.full_name || userObj.full_name;
+              }
               setUser(userObj);
             } catch (err) {
               setUser(mapPayloadToUser(payload)); // fallback

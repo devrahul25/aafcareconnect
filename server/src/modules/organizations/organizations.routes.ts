@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { 
   createOrganization, listOrganizations, updateOrganization, deleteOrganization,
-  getOrganizationTypes, addOrganizationType, deleteOrganizationType
+  getOrganizationTypes, addOrganizationType, deleteOrganizationType, getOrganization
 } from './organizations.controller';
 import { requireAuth } from '../auth/auth.middleware';
 
@@ -17,6 +17,9 @@ router.post('/', requireAuth, createOrganization);
 
 // Endpoint to list organisations
 router.get('/', requireAuth, listOrganizations);
+
+// Endpoint to get a specific organisation
+router.get('/:id', requireAuth, getOrganization);
 
 // Endpoint to update an organisation
 router.put('/:id', requireAuth, updateOrganization);
