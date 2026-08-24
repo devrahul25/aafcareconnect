@@ -93,15 +93,20 @@ export const getSuperAdminDashboard = async (req: Request, res: Response): Promi
 
 export const getOrganizationDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { orgId } = req.params;
+    const orgId = req.params.orgId as string;
 
     const [organization, users, certificates, enrolments] = await Promise.all([
       prisma.organization.findUnique({
-        where: { id: orgId as string },
+        where: { id: orgId },
         include: { subscriptions: { orderBy: { created_at: 'desc' }, take: 1 } }
       }),
-      prisma.user.findMany({ where: { organization_id: orgId, status: 'ACTIVE' }, include: { user_roles: { include: { role: true } } } }),
-      prisma.cPDCertificate.findMany({ where: { organization_id: orgId } }),
+      prisma.user.findMany({
+        where: { organization_id: orgId, status: 'ACTIVE' },
+        include: { user_roles: { include: { role: true } } }
+      }),
+      prisma.cPDCertificate.findMany({
+        where: { organization_id: orgId }
+      }),
       prisma.courseEnrolment.findMany({
         where: { organization_id: orgId },
         include: { course: { select: { category: true } } }
