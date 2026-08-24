@@ -95,67 +95,105 @@ export const getOrganizationDashboard = async (req: Request, res: Response): Pro
   try {
     const { orgId } = req.params;
 
-    // 1. Organization Details
-    const organization = await prisma.organization.findUnique({
-      where: { id: orgId as string },
-      include: {
-        subscriptions: {
-          orderBy: { created_at: 'desc' },
-          take: 1
-        }
-      }
-    });
+    const [organization, users, certificates, enrolments] = await Promise.all([
+      prisma.organization.findUnique({
+        where: { id: orgId as string },
+        include: { subscriptions: { orderBy: { created_at: 'desc' }, take: 1 } }
+      }),
+      prisma.user.findMany({ where: { organization_id: orgId, status: 'ACTIVE' }, include: { user_roles: { include: { role: true } } } }),
+      prisma.cPDCertificate.findMany({ where: { organization_id: orgId } }),
+      prisma.courseEnrolment.findMany({
+        where: { organization_id: orgId },
+        include: { course: { select: { category: true } } }
+      })
+    ]);
 
     if (!organization) {
       res.status(404).json({ error: 'Organization not found' });
       return;
     }
 
-    // 2. Active Learners Count
-    const activeLearners = await prisma.user.count({
-      where: {
-        organization_id: orgId as string,
-        status: 'ACTIVE',
-        user_roles: {
-          some: {
-            role: { name: 'learner' }
-          }
+    const activeLearners = users.filter(u => u.user_roles.some(ur => ur.role.name === 'learner')).length;
+    const activeStaff = users.filter(u => u.user_roles.some(ur => ['org_admin', 'manager', 'trainer'].includes(ur.role.name))).length;
+    const total = users.length;
+
+    let totalCpdHours = 0;
+    const now = new Date();
+    let expiring = 0;
+    let expired = 0;
+
+    certificates.forEach(c => {
+      totalCpdHours += (c.cpd_hours || 0);
+      if (c.expiry_date) {
+        if (c.expiry_date < now || c.status === 'EXPIRED') {
+           expired++;
+        } else {
+           const daysToExpiry = (c.expiry_date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+           if (daysToExpiry <= 90 || c.status === 'EXPIRING_SOON') expiring++;
         }
       }
     });
 
-    // 3. Active Staff Count
-    const activeStaff = await prisma.user.count({
-      where: {
-        organization_id: orgId as string,
-        status: 'ACTIVE',
-        user_roles: {
-          some: {
-            role: { name: { in: ['org_admin', 'manager', 'trainer'] } }
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    // Expiry Data Chart (next 4 months)
+    const expiryDataMap: Record<string, number> = {};
+    for (let i = 0; i < 4; i++) {
+       const m = new Date(now.getFullYear(), now.getMonth() + i, 1);
+       expiryDataMap[monthNames[m.getMonth()]] = 0;
+    }
+    certificates.forEach(c => {
+      if (c.expiry_date && c.expiry_date > now) {
+         const mName = monthNames[c.expiry_date.getMonth()];
+         if (expiryDataMap[mName] !== undefined) {
+             expiryDataMap[mName]++;
+         }
+      }
+    });
+    const expiryData = Object.keys(expiryDataMap).map(month => ({ month, expiring: expiryDataMap[month] }));
+
+    // Trend Data Chart (last 6 months)
+    const trendDataMap: Record<string, { assigned: number, completed: number }> = {};
+    for (let i = 5; i >= 0; i--) {
+       const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
+       trendDataMap[monthNames[m.getMonth()]] = { assigned: 0, completed: 0 };
+    }
+    
+    enrolments.forEach(e => {
+       const enrolledMonth = monthNames[e.enrolled_date.getMonth()];
+       if (trendDataMap[enrolledMonth] !== undefined) {
+          trendDataMap[enrolledMonth].assigned++;
+       }
+       if (e.status === 'COMPLETED' && e.completed_date) {
+          const completedMonth = monthNames[e.completed_date.getMonth()];
+          if (trendDataMap[completedMonth] !== undefined) {
+             trendDataMap[completedMonth].completed++;
           }
-        }
-      }
+       }
     });
+    const trendData = Object.keys(trendDataMap).map(month => ({ month, ...trendDataMap[month] }));
 
-    // 4. Compliance Score
-    const totalCompliance = await prisma.complianceRecord.count({
-      where: { organization_id: orgId as string }
+    // Compliance Data Chart (by Course Category)
+    const categoryStats: Record<string, { total: number, completed: number }> = {};
+    enrolments.forEach(e => {
+       const cat = e.course?.category || 'General';
+       if (!categoryStats[cat]) categoryStats[cat] = { total: 0, completed: 0 };
+       categoryStats[cat].total++;
+       if (e.status === 'COMPLETED') categoryStats[cat].completed++;
     });
-    const resolvedCompliance = await prisma.complianceRecord.count({
-      where: {
-        organization_id: orgId as string,
-        status: { in: ['RESOLVED', 'CLOSED'] }
-      }
-    });
-    const complianceScore = totalCompliance === 0 ? 0 : Math.round((resolvedCompliance / totalCompliance) * 100);
+    
+    const complianceData = Object.keys(categoryStats).map(label => {
+       const pct = Math.round((categoryStats[label].completed / categoryStats[label].total) * 100);
+       return { label, pct };
+    }).sort((a, b) => b.pct - a.pct).slice(0, 5);
 
-    // 5. Course Completions
-    const courseCompletions = await prisma.courseEnrolment.count({
-      where: {
-        user: { organization_id: orgId as string },
-        status: 'COMPLETED'
-      }
-    });
+    // Average compliance across all enrolments
+    const totalEnrolments = enrolments.length;
+    const completedEnrolments = enrolments.filter(e => e.status === 'COMPLETED').length;
+    const avgCompliance = totalEnrolments === 0 ? 0 : Math.round((completedEnrolments / totalEnrolments) * 100);
+
+    const fullyCompliant = 0; // Mocked for now
+    const highRisk = 0; // Mocked for now
 
     res.status(200).json({
       success: true,
@@ -163,8 +201,16 @@ export const getOrganizationDashboard = async (req: Request, res: Response): Pro
         organization,
         activeLearners,
         activeStaff,
-        complianceScore,
-        courseCompletions
+        total,
+        fullyCompliant,
+        expiring,
+        expired,
+        highRisk,
+        avgCompliance,
+        totalCpdHours,
+        trendData,
+        expiryData,
+        complianceData
       }
     });
   } catch (error: any) {

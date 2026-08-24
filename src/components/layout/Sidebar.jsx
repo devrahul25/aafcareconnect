@@ -7,6 +7,8 @@ import {
   TrendingUp, ShieldAlert
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/api/apiClient";
 
 /**
  * Navigation items exclusively for Super Admins
@@ -57,6 +59,13 @@ export default function Sidebar({ user, collapsed, setCollapsed }) {
   const { logout, hasRole, hasPermission } = useAuth();
   const isSuperAdmin = hasRole("super_admin");
 
+  const { data: orgResponse } = useQuery({
+    queryKey: ['organization', user?.organization_id],
+    queryFn: () => apiClient.get(`/organizations/${user?.organization_id}`).then(res => res.data),
+    enabled: !!user?.organization_id,
+  });
+  const organization = orgResponse?.data;
+
   // Dynamically build visible items based on permissions
   const visibleItems = isSuperAdmin
     ? SUPER_ADMIN_NAV_ITEMS
@@ -94,8 +103,12 @@ export default function Sidebar({ user, collapsed, setCollapsed }) {
       {!collapsed && user && (
         <div className="px-3 py-2.5 border-b border-white/5">
           <div className="flex items-center gap-2.5 bg-white/5 rounded-lg px-2.5 py-2">
-            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-              {(user.full_name || "U").charAt(0).toUpperCase()}
+            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-blue-600 text-[10px] font-bold flex-shrink-0 overflow-hidden">
+              {organization?.logo_url ? (
+                <img src={organization.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5" />
+              ) : (
+                (user.full_name || "U").charAt(0).toUpperCase()
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-slate-200 text-xs font-semibold truncate leading-tight">{user.full_name || "User"}</p>

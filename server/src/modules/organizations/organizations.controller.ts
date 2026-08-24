@@ -292,7 +292,10 @@ export const listOrganizations = async (req: Request, res: Response): Promise<vo
 export const updateOrganization = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, email, phone, status, assigned_template_ids } = req.body;
+    const { 
+      name, email, phone, status, assigned_template_ids,
+      logo_url, website, address, city, county, country, postcode, registration_number
+    } = req.body;
 
     const organization = await prisma.organization.update({
       where: { id: id as string },
@@ -301,6 +304,14 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
         email,
         phone,
         status,
+        logo_url,
+        website,
+        address,
+        city,
+        county,
+        country,
+        postcode,
+        registration_number,
       }
     });
 
@@ -417,5 +428,22 @@ export const deleteOrganization = async (req: Request, res: Response): Promise<v
   } catch (error: any) {
     console.error('Delete Organization Error:', error);
     res.status(500).json({ error: error.message || 'Failed to delete organization' });
+  }
+};
+
+export const getOrganization = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const organization = await prisma.organization.findUnique({
+      where: { id: id as string }
+    });
+    if (!organization) {
+      res.status(404).json({ error: 'Organization not found' });
+      return;
+    }
+    res.status(200).json({ success: true, data: organization });
+  } catch (error: any) {
+    console.error('Get Organization Error:', error);
+    res.status(500).json({ error: 'Failed to get organization' });
   }
 };
