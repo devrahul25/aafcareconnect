@@ -4,6 +4,9 @@ import { fmt, daysUntil } from "@/lib/cpdData";
 import confetti from "canvas-confetti";
 import CertificateTemplate from "@/components/course/CertificateTemplate";
 import { downloadCertificateFromElement } from "@/lib/certificatePdf";
+import { useAuth } from "@/lib/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/api/apiClient";
 
 const STATUS_CFG = {
   valid:         { bg: "bg-emerald-600", label: "VERIFIED & VALID",    icon: CheckCircle2 },
@@ -12,10 +15,21 @@ const STATUS_CFG = {
 };
 
 export default function CertificateViewer({ cert, onClose }) {
+  const { user } = useAuth();
   const [downloading, setDownloading] = useState(false);
   const days = daysUntil(cert.expiry);
   const s = STATUS_CFG[cert.status] || STATUS_CFG.valid;
   const StatusIcon = s.icon;
+
+  const { data: orgData } = useQuery({
+    queryKey: ['organization', user?.organization_id],
+    queryFn: () => apiClient.get(`/organizations/${user?.organization_id}`).then(res => res.data),
+    enabled: !!user?.organization_id && !cert?.organisationLogo,
+  });
+
+  const org = orgData?.data || user?.organization || {};
+  const effectiveOrgLogo = cert?.organisationLogo || cert?.certificate_logo_url || cert?.logo_url || org?.certificate_logo_url || org?.logo_url || null;
+  const effectiveOrgName = cert?.provider && cert.provider !== "CareConnect Demo Authority" ? cert.provider : (org?.name || cert?.provider || "CareConnect Demo Authority");
 
   useEffect(() => {
     if (cert.status === "valid") {
@@ -53,7 +67,8 @@ export default function CertificateViewer({ cert, onClose }) {
                   id={`viewer-cert-${cert.certId || 'doc'}`}
                   learnerName={cert.person || "Jane Smith"}
                   courseTitle={cert.title || "Safeguarding Children"}
-                  organisationName={cert.provider || "CareConnect Demo Authority"}
+                  organisationName={effectiveOrgName}
+                  organisationLogo={effectiveOrgLogo}
                   issueDate={cert.issued}
                   level="Advanced"
                   category={cert.category || "Mandatory"}

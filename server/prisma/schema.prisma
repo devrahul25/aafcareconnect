@@ -116,6 +116,7 @@ model Organization {
   name                String
   type                String // Reference to OrganizationTypeOption.name
   logo_url            String?
+  certificate_logo_url String?
   address             String?
   phone               String?
   email               String?

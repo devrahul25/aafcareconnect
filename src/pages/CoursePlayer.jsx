@@ -264,7 +264,7 @@ export default function CoursePlayer() {
           course={transformedCourse}
           learnerName={learnerName}
           organisationName={enrolmentData?.organization?.name || user?.organization?.name || "CareConnect Demo Authority"}
-          organisationLogo={enrolmentData?.organization?.logo_url || user?.organization?.logo_url}
+          organisationLogo={enrolmentData?.organization?.certificate_logo_url || enrolmentData?.organization?.logo_url || user?.organization?.certificate_logo_url || user?.organization?.logo_url}
         />
       );
       return (
