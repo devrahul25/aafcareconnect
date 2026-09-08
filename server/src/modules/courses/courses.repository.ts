@@ -382,6 +382,15 @@ export class CoursesRepository {
   }
 
   async updateQuizAnswer(organizationId: string | null, id: string, data: any) {
+    if (data.is_correct === true) {
+      const target = await prisma.quizAnswer.findUnique({ where: { id } });
+      if (target) {
+        await prisma.quizAnswer.updateMany({
+          where: { question_id: target.question_id, organization_id: organizationId, id: { not: id } },
+          data: { is_correct: false }
+        });
+      }
+    }
     return prisma.quizAnswer.update({ where: { id, organization_id: organizationId }, data });
   }
 
