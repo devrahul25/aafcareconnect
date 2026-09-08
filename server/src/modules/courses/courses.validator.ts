@@ -131,7 +131,7 @@ export const updateRichTextSchema = z.object({
 // Quizzes
 export const createQuizSchema = z.object({
   body: z.object({
-    title: z.string().min(3).max(200),
+    title: z.string().min(1).max(200),
     pass_mark: z.number().int().min(0).max(100).default(80),
     time_limit: z.number().int().positive().optional(),
     sort_order: z.number().int().default(0),
@@ -140,7 +140,7 @@ export const createQuizSchema = z.object({
 
 export const updateQuizSchema = z.object({
   body: z.object({
-    title: z.string().min(3).max(200).optional(),
+    title: z.string().min(1).max(200).optional(),
     pass_mark: z.number().int().min(0).max(100).optional(),
     time_limit: z.number().int().positive().optional(),
     sort_order: z.number().int().optional(),
@@ -150,7 +150,7 @@ export const updateQuizSchema = z.object({
 // Quiz Questions
 export const createQuizQuestionSchema = z.object({
   body: z.object({
-    question: z.string().min(5).max(500),
+    question: z.string().min(1).max(1000),
     explanation: z.string().optional(),
     sort_order: z.number().int().default(0),
   }),
@@ -158,7 +158,7 @@ export const createQuizQuestionSchema = z.object({
 
 export const updateQuizQuestionSchema = z.object({
   body: z.object({
-    question: z.string().min(5).max(500).optional(),
+    question: z.string().min(1).max(1000).optional(),
     explanation: z.string().optional(),
     sort_order: z.number().int().optional(),
   }),
@@ -167,7 +167,7 @@ export const updateQuizQuestionSchema = z.object({
 // Quiz Answers
 export const createQuizAnswerSchema = z.object({
   body: z.object({
-    text: z.string().min(1).max(300),
+    text: z.string().min(1).max(500),
     is_correct: z.boolean().default(false),
     sort_order: z.number().int().default(0),
   }),
@@ -175,7 +175,7 @@ export const createQuizAnswerSchema = z.object({
 
 export const updateQuizAnswerSchema = z.object({
   body: z.object({
-    text: z.string().min(1).max(300).optional(),
+    text: z.string().min(1).max(500).optional(),
     is_correct: z.boolean().optional(),
     sort_order: z.number().int().optional(),
   }),

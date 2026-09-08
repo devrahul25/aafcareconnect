@@ -399,7 +399,11 @@ function AddQuestionForm({ quizId, courseId, numQuestions }) {
       queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       toast({ title: "Question added", description: "Now add answer options below." });
     },
-    onError: () => toast({ title: "Error", description: "Failed to add question", variant: "destructive" })
+    onError: (err) => {
+      const errorData = err.response?.data?.error;
+      const errorMsg = typeof errorData === 'string' ? errorData : errorData?.message || err.response?.data?.message || "Failed to add question";
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
+    }
   });
 
   return (
@@ -450,7 +454,11 @@ function QuestionEditor({ question, index, quizId, courseId }) {
       setNewAnswerText("");
       queryClient.invalidateQueries({ queryKey: ['template', courseId] });
     },
-    onError: () => toast({ title: "Error", description: "Failed to add answer", variant: "destructive" })
+    onError: (err) => {
+      const errorData = err.response?.data?.error;
+      const errorMsg = typeof errorData === 'string' ? errorData : errorData?.message || err.response?.data?.message || "Failed to add answer";
+      toast({ title: "Error", description: errorMsg, variant: "destructive" });
+    }
   });
 
   const deleteAnswerMutation = useMutation({
