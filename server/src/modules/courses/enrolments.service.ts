@@ -120,11 +120,9 @@ export class EnrolmentsService {
             }
         });
 
-        // Recalculate course progress
-        // Note: For a fully accurate calculation we'd need to know total lessons.
-        // The frontend will usually send the new `progress_percent` via the updateProgress endpoint, 
-        // but it's safer to have the frontend call `/progress` with the overall percent after this, 
-        // or we do it here if we count the lessons. For now, we rely on the client to update overall progress via the `/progress` endpoint.
+        if (enrolment.status === 'ENROLLED') {
+            await enrolmentsRepository.update(organizationId, enrolment.id, { status: 'IN_PROGRESS' });
+        }
 
         return lessonProgress;
     }

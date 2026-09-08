@@ -109,38 +109,39 @@ export default function Dashboard() {
       return;
     }
     
-    if (!organisationId) {
-      // Demo fallback
-      const m = getDemoMetrics();
-      setMetrics({
-        ...m,
-        trendData: TREND_DATA,
-        expiryData: EXPIRY_DATA,
-        complianceData: COMPLIANCE
-      });
-      setActivity(buildDemoActivity());
-      setLoading(false);
-      return;
-    }
+    const effectiveOrgId = organisationId || user?.organization_id || user?.organisation_id;
+    const targetOrgId = effectiveOrgId || 'current';
     
-    apiClient.get(`/dashboard/organization/${organisationId}`)
+    apiClient.get(`/dashboard/organization/${targetOrgId}`)
       .then(res => {
-        if (res.data.success) {
+        if (res.data.success && res.data.data) {
           setMetrics(res.data.data);
-          setActivity([]); // TODO: Add audit logs when available in endpoint
+          const rawActivities = res.data.data.recentActivity || [];
+          setActivity(rawActivities.map(formatActivityItem));
+        } else {
+          const m = getDemoMetrics();
+          setMetrics({
+            ...m,
+            trendData: [],
+            expiryData: [],
+            complianceData: []
+          });
+          setActivity([]);
         }
       })
       .catch(err => {
         console.error("Failed to fetch org dashboard:", err);
+        const m = getDemoMetrics();
         setMetrics({
-          total: 0, fullyCompliant: 0, expiring: 0, expired: 0, 
-          highRisk: 0, avgCompliance: 0, totalCpdHours: 0,
-          trendData: [], expiryData: [], complianceData: []
+          ...m,
+          trendData: [],
+          expiryData: [],
+          complianceData: []
         });
         setActivity([]);
       })
       .finally(() => setLoading(false));
-  }, [organisationId, isSuperAdmin]);
+  }, [organisationId, user?.organization_id, user?.organisation_id, isSuperAdmin, isManager]);
 
   const { data: learnerEnrolments = [] } = useQuery({
     queryKey: ['learner-enrolments', user?.id],
@@ -716,6 +717,8 @@ export default function Dashboard() {
     );
   }
 
+  const effectiveOrgId = organisationId || user?.organization_id || user?.organisation_id;
+
   return (
     <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
       {/* Header */}
@@ -725,8 +728,11 @@ export default function Dashboard() {
           <p className="text-slate-500 text-sm mt-0.5">Administrator Dashboard · {new Date().toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" })}</p>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-slate-400 text-xs font-medium">AAF CareConnect™ — The UK's Connected Care Platform</p>
-            {!organisationId && <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">⚠ Demo Mode</span>}
-            {organisationId  && <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full px-2 py-0.5">🔄 Live Data</span>}
+            {effectiveOrgId ? (
+              <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full px-2 py-0.5">🔄 Live Data</span>
+            ) : (
+              <span className="text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">⚠ Demo Mode</span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -780,7 +786,7 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"/>Completed</span>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={metrics?.trendData || TREND_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <AreaChart data={metrics?.trendData && metrics.trendData.length > 0 ? metrics.trendData : (effectiveOrgId ? [] : TREND_DATA)} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradAssigned" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
@@ -811,7 +817,7 @@ export default function Dashboard() {
             <Link to="/cpd-certificates" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">View all <ArrowRight size={11}/></Link>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={metrics?.expiryData || EXPIRY_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <BarChart data={metrics?.expiryData && metrics.expiryData.length > 0 ? metrics.expiryData : (effectiveOrgId ? [] : EXPIRY_DATA)} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false}/>
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false}/>
@@ -835,7 +841,7 @@ export default function Dashboard() {
             <Link to="/cpd-certificates" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">Full report <ArrowRight size={11}/></Link>
           </div>
           <div className="space-y-4">
-            {(metrics?.complianceData || COMPLIANCE).map(({ label, pct }) => (
+            {(metrics?.complianceData && metrics.complianceData.length > 0 ? metrics.complianceData : (effectiveOrgId ? [] : COMPLIANCE)).map(({ label, pct }) => (
               <div key={label}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
@@ -849,6 +855,11 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+            {effectiveOrgId && (!metrics?.complianceData || metrics.complianceData.length === 0) && (
+              <div className="py-8 text-center text-sm text-slate-400">
+                No compliance records available yet.
+              </div>
+            )}
           </div>
           <div className="mt-5 pt-4 border-t border-slate-50 flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"/>≥ 90% Compliant</span>
@@ -861,18 +872,19 @@ export default function Dashboard() {
         <div className="xl:col-span-3 card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-heading font-bold text-slate-900">Activity Feed</h2>
-            <span className="text-xs font-semibold text-slate-400">Today</span>
+            <span className="text-xs font-semibold text-slate-400">Recent</span>
           </div>
-          {activity.length === 0 && organisationId ? (
-            <p className="text-sm text-slate-400 py-8 text-center">Activity will appear here as learners complete courses.</p>
+          {activity.length === 0 ? (
+            <p className="text-sm text-slate-400 py-8 text-center">Activity will appear here as learners interact with courses.</p>
           ) : (
             <div className="space-y-0">
               {activity.map((a, i) => {
-                const Icon = a.icon;
+                const Icon = a.icon || CheckCircle2;
+                const initials = (a.name || 'User').split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
                 return (
-                  <div key={i} className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
-                    <div className={`w-8 h-8 rounded-full ${a.color} flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5`}>
-                      {a.name.split(" ").map(n => n[0]).join("").slice(0,2)}
+                  <div key={a.id || i} className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                    <div className={`w-8 h-8 rounded-full ${a.color || 'bg-blue-500'} flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0 mt-0.5`}>
+                      {initials}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-700 leading-snug">
@@ -883,8 +895,8 @@ export default function Dashboard() {
                       </p>
                       <p className="text-[11px] text-slate-400 mt-0.5">{a.time}</p>
                     </div>
-                    <div className={`w-7 h-7 rounded-lg ${a.bgLight} flex items-center justify-center flex-shrink-0`}>
-                      <Icon size={13} className={a.iconColor}/>
+                    <div className={`w-7 h-7 rounded-lg ${a.bgLight || 'bg-slate-50'} flex items-center justify-center flex-shrink-0`}>
+                      <Icon size={13} className={a.iconColor || 'text-slate-600'}/>
                     </div>
                   </div>
                 );
@@ -895,6 +907,68 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
+function formatActivityItem(a) {
+  if (!a) return null;
+  if (a.icon) return a;
+
+  let Icon = CheckCircle2;
+  let color = "bg-emerald-500";
+  let iconColor = "text-emerald-600";
+  let bgLight = "bg-emerald-50";
+
+  const action = (a.action || '').toLowerCase();
+  const type = (a.type || '').toLowerCase();
+
+  if (action.includes('download') || type === 'download') {
+    Icon = Download;
+    color = "bg-blue-500";
+    iconColor = "text-blue-600";
+    bgLight = "bg-blue-50";
+  } else if (action.includes('enrol') || action.includes('add') || action.includes('user') || type === 'enrolled' || type === 'user') {
+    Icon = UserPlus;
+    color = "bg-violet-500";
+    iconColor = "text-violet-600";
+    bgLight = "bg-violet-50";
+  } else if (action.includes('start') || type === 'progress') {
+    Icon = Play;
+    color = "bg-amber-500";
+    iconColor = "text-amber-600";
+    bgLight = "bg-amber-50";
+  } else if (type === 'login' || action.includes('login')) {
+    Icon = Users;
+    color = "bg-blue-500";
+    iconColor = "text-blue-600";
+    bgLight = "bg-blue-50";
+  }
+
+  let timeStr = a.time || "Just now";
+  if (a.created_at) {
+    const diffMs = Date.now() - new Date(a.created_at).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) timeStr = "Just now";
+    else if (diffMins < 60) timeStr = `${diffMins} min ago`;
+    else if (diffHours < 24) timeStr = `${diffHours} hr${diffHours > 1 ? 's' : ''} ago`;
+    else if (diffDays === 1) timeStr = "Yesterday";
+    else timeStr = `${diffDays} days ago`;
+  }
+
+  return {
+    ...a,
+    name: a.name || 'User',
+    action: a.action || 'updated',
+    item: a.item || 'record',
+    score: a.score || null,
+    time: timeStr,
+    icon: Icon,
+    color,
+    iconColor,
+    bgLight
+  };
 }
 
 function buildDemoActivity() {

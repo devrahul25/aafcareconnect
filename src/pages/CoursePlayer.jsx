@@ -160,7 +160,7 @@ export default function CoursePlayer() {
   const module = transformedCourse.modules[currentModuleIdx] || { title: "", lessons: [] };
   const lesson = module.lessons[currentLessonIdx] || null;
   const totalLessons = allLessons.length || 1; // avoid division by zero
-  const progressPercent = Math.round((completedLessons.size / totalLessons) * 100);
+  const progressPercent = passedCourse ? 100 : Math.min(100, Math.round((completedLessons.size / totalLessons) * 100));
 
   const parseMin = (d) => parseInt(String(d).replace(/[^\d]/g, ""), 10) || 0;
   const remainingMin = allLessons
@@ -186,7 +186,7 @@ export default function CoursePlayer() {
     const newSet = new Set(completedLessons).add(lesson.id);
     setCompletedLessons(newSet);
     
-    const newProgress = Math.round((newSet.size / totalLessons) * 100);
+    const newProgress = Math.min(100, Math.round((newSet.size / totalLessons) * 100));
 
     // Sync to backend
     updateProgressMutation.mutate({
@@ -195,7 +195,16 @@ export default function CoursePlayer() {
       status: 'COMPLETED'
     });
     
-    syncOverallProgressMutation.mutate(newProgress);
+    if (enrolmentData?.id) {
+      syncOverallProgressMutation.mutate(newProgress);
+    }
+
+    if (newSet.size >= totalLessons) {
+      setPassedCourse(true);
+      if (enrolmentData?.id) {
+        completeCourseMutation.mutate(100);
+      }
+    }
   };
 
   const goPrev = () => {
@@ -225,6 +234,7 @@ export default function CoursePlayer() {
     // Mark all lessons complete + update progress
     const newSet = new Set(allLessons.map((l) => l.id));
     setCompletedLessons(newSet);
+    setPassedCourse(true);
     
     if (lesson) {
         updateProgressMutation.mutate({
@@ -235,7 +245,10 @@ export default function CoursePlayer() {
         });
     }
 
-    completeCourseMutation.mutate(score);
+    if (enrolmentData?.id) {
+      syncOverallProgressMutation.mutate(100);
+      completeCourseMutation.mutate(score);
+    }
   };
 
   // Right panel (notes / journal / resources) for every non-assessment lesson
@@ -246,7 +259,14 @@ export default function CoursePlayer() {
     if (!lesson) return <div className="p-8">No content available for this lesson.</div>;
     
     if (lesson.uiType === "assessment") {
-      if (passedCourse) return <CertificateScreen course={transformedCourse} learnerName={learnerName} />;
+      if (passedCourse) return (
+        <CertificateScreen
+          course={transformedCourse}
+          learnerName={learnerName}
+          organisationName={enrolmentData?.organization?.name || user?.organization?.name || "CareConnect Demo Authority"}
+          organisationLogo={enrolmentData?.organization?.logo_url || user?.organization?.logo_url}
+        />
+      );
       return (
         <CardAssessment
           questions={lesson.questions || []}
