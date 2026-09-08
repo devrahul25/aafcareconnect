@@ -56,7 +56,7 @@ export const deleteOrganizationType = async (req: Request, res: Response): Promi
 
 export const createOrganization = async (req: Request, res: Response): Promise<void> => {
   const {
-    name, type, email, phone, website, logo_url,
+    name, type, email, phone, website, logo_url, certificate_logo_url,
     address, city, county, country, postcode,
     registration_number, ofsted_number,
     admin_name, admin_email, admin_phone, admin_job_title,
@@ -96,6 +96,7 @@ export const createOrganization = async (req: Request, res: Response): Promise<v
           phone,
           website,
           logo_url,
+          certificate_logo_url,
           address,
           city,
           county,
@@ -294,7 +295,7 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
     const { id } = req.params;
     const { 
       name, email, phone, status, assigned_template_ids,
-      logo_url, website, address, city, county, country, postcode, registration_number
+      logo_url, certificate_logo_url, website, address, city, county, country, postcode, registration_number
     } = req.body;
 
     const organization = await prisma.organization.update({
@@ -305,6 +306,7 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
         phone,
         status,
         logo_url,
+        certificate_logo_url,
         website,
         address,
         city,
