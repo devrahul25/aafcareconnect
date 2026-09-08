@@ -20,8 +20,8 @@ router.patch('/:id', requirePermission('courses', 'update'), validate(validator.
 router.delete('/:id', requirePermission('courses', 'delete'), controller.deleteEnrolment);
 
 // Progress Tracking
-router.post('/:id/progress', requirePermission('courses', 'update'), validate(validator.updateProgressSchema), controller.updateProgress);
-router.post('/:id/complete', requirePermission('courses', 'update'), validate(validator.completeEnrolmentSchema), controller.completeEnrolment);
+router.post('/:id/progress', validate(validator.updateProgressSchema), controller.updateProgress);
+router.post('/:id/complete', validate(validator.completeEnrolmentSchema), controller.completeEnrolment);
 
 // Learner specific endpoints (Requires only a valid JWT auth and matching enrolment, handled in service)
 router.get('/course/:courseId/learner-view', controller.getLearnerCourse);

@@ -93,9 +93,26 @@ export const getSuperAdminDashboard = async (req: Request, res: Response): Promi
 
 export const getOrganizationDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
-    const orgId = req.params.orgId as string;
+    let orgId = req.params.orgId as string;
+    const authUser = (req as any).user;
 
-    const [organization, users, certificates, enrolments] = await Promise.all([
+    if (!orgId || orgId === 'current' || orgId === 'null' || orgId === 'undefined' || orgId === 'default') {
+      orgId = authUser?.organization_id || authUser?.organization?.id;
+    }
+
+    if (!orgId) {
+      const firstOrg = await prisma.organization.findFirst();
+      if (firstOrg) {
+        orgId = firstOrg.id;
+      }
+    }
+
+    if (!orgId) {
+      res.status(404).json({ error: 'Organization not found' });
+      return;
+    }
+
+    const [organization, users, certificates, enrolments, auditLogs] = await Promise.all([
       prisma.organization.findUnique({
         where: { id: orgId },
         include: { subscriptions: { orderBy: { created_at: 'desc' }, take: 1 } }
@@ -109,7 +126,17 @@ export const getOrganizationDashboard = async (req: Request, res: Response): Pro
       }),
       prisma.courseEnrolment.findMany({
         where: { organization_id: orgId },
-        include: { course: { select: { category: true } } }
+        include: { 
+          user: { select: { id: true, full_name: true, email: true } },
+          course: { select: { id: true, title: true, category: true } }
+        },
+        orderBy: { updated_at: 'desc' }
+      }),
+      prisma.auditLog.findMany({
+        where: { organization_id: orgId },
+        take: 10,
+        orderBy: { created_at: 'desc' },
+        include: { user: { select: { full_name: true, email: true } } }
       })
     ]);
 
@@ -142,41 +169,53 @@ export const getOrganizationDashboard = async (req: Request, res: Response): Pro
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     
     // Expiry Data Chart (next 4 months)
-    const expiryDataMap: Record<string, number> = {};
+    const expiryDataMap: { month: string; expiring: number; date: Date }[] = [];
     for (let i = 0; i < 4; i++) {
-       const m = new Date(now.getFullYear(), now.getMonth() + i, 1);
-       expiryDataMap[monthNames[m.getMonth()]] = 0;
+       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+       expiryDataMap.push({
+         month: monthNames[d.getMonth()],
+         expiring: 0,
+         date: d
+       });
     }
     certificates.forEach(c => {
-      if (c.expiry_date && c.expiry_date > now) {
-         const mName = monthNames[c.expiry_date.getMonth()];
-         if (expiryDataMap[mName] !== undefined) {
-             expiryDataMap[mName]++;
-         }
+      if (c.expiry_date && c.expiry_date >= now) {
+         const expDate = new Date(c.expiry_date);
+         expiryDataMap.forEach(item => {
+           if (expDate.getFullYear() === item.date.getFullYear() && expDate.getMonth() === item.date.getMonth()) {
+             item.expiring++;
+           }
+         });
       }
     });
-    const expiryData = Object.keys(expiryDataMap).map(month => ({ month, expiring: expiryDataMap[month] }));
+    const expiryData = expiryDataMap.map(({ month, expiring }) => ({ month, expiring }));
 
     // Trend Data Chart (last 6 months)
-    const trendDataMap: Record<string, { assigned: number, completed: number }> = {};
+    const trendDataMap: { month: string; assigned: number; completed: number; date: Date }[] = [];
     for (let i = 5; i >= 0; i--) {
-       const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
-       trendDataMap[monthNames[m.getMonth()]] = { assigned: 0, completed: 0 };
+       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+       trendDataMap.push({
+         month: monthNames[d.getMonth()],
+         assigned: 0,
+         completed: 0,
+         date: d
+       });
     }
     
     enrolments.forEach(e => {
-       const enrolledMonth = monthNames[e.enrolled_date.getMonth()];
-       if (trendDataMap[enrolledMonth] !== undefined) {
-          trendDataMap[enrolledMonth].assigned++;
-       }
-       if (e.status === 'COMPLETED' && e.completed_date) {
-          const completedMonth = monthNames[e.completed_date.getMonth()];
-          if (trendDataMap[completedMonth] !== undefined) {
-             trendDataMap[completedMonth].completed++;
-          }
-       }
+       const eDate = new Date(e.enrolled_date || e.created_at);
+       const cDate = e.completed_date ? new Date(e.completed_date) : null;
+
+       trendDataMap.forEach(item => {
+         if (eDate.getFullYear() === item.date.getFullYear() && eDate.getMonth() === item.date.getMonth()) {
+           item.assigned++;
+         }
+         if (e.status === 'COMPLETED' && cDate && cDate.getFullYear() === item.date.getFullYear() && cDate.getMonth() === item.date.getMonth()) {
+           item.completed++;
+         }
+       });
     });
-    const trendData = Object.keys(trendDataMap).map(month => ({ month, ...trendDataMap[month] }));
+    const trendData = trendDataMap.map(({ month, assigned, completed }) => ({ month, assigned, completed }));
 
     // Compliance Data Chart (by Course Category)
     const categoryStats: Record<string, { total: number, completed: number }> = {};
@@ -187,18 +226,117 @@ export const getOrganizationDashboard = async (req: Request, res: Response): Pro
        if (e.status === 'COMPLETED') categoryStats[cat].completed++;
     });
     
-    const complianceData = Object.keys(categoryStats).map(label => {
+    let complianceData = Object.keys(categoryStats).map(label => {
        const pct = Math.round((categoryStats[label].completed / categoryStats[label].total) * 100);
        return { label, pct };
     }).sort((a, b) => b.pct - a.pct).slice(0, 5);
+
+    if (complianceData.length === 0) {
+      const courses = await prisma.course.findMany({ select: { category: true } });
+      const uniqueCats = Array.from(new Set(courses.map(c => c.category).filter(Boolean)));
+      if (uniqueCats.length > 0) {
+        complianceData = uniqueCats.slice(0, 4).map(cat => ({ label: cat, pct: 0 }));
+      }
+    }
 
     // Average compliance across all enrolments
     const totalEnrolments = enrolments.length;
     const completedEnrolments = enrolments.filter(e => e.status === 'COMPLETED').length;
     const avgCompliance = totalEnrolments === 0 ? 0 : Math.round((completedEnrolments / totalEnrolments) * 100);
 
-    const fullyCompliant = 0; // Mocked for now
-    const highRisk = 0; // Mocked for now
+    // Fully compliant & high risk calculation
+    let fullyCompliant = 0;
+    let highRisk = 0;
+    const learnerUsers = users.filter(u => u.user_roles.some(ur => ur.role.name === 'learner'));
+    
+    learnerUsers.forEach(u => {
+      const uEnrolments = enrolments.filter(e => e.user_id === u.id);
+      const uCerts = certificates.filter(c => c.user_id === u.id);
+      const hasExpired = uCerts.some(c => c.expiry_date && c.expiry_date < now);
+
+      if (uEnrolments.length > 0) {
+        const comp = uEnrolments.filter(e => e.status === 'COMPLETED').length;
+        const pct = comp / uEnrolments.length;
+        if (pct === 1 && !hasExpired) {
+          fullyCompliant++;
+        } else if (pct < 0.75 || hasExpired) {
+          highRisk++;
+        }
+      } else if (hasExpired) {
+        highRisk++;
+      }
+    });
+
+    // Recent Activity Feed
+    const activityList: any[] = [];
+
+    enrolments.slice(0, 10).forEach(e => {
+      const userName = e.user?.full_name || e.user?.email?.split('@')[0] || 'Learner';
+      const courseTitle = e.course?.title || 'Course';
+      if (e.status === 'COMPLETED') {
+        activityList.push({
+          id: `enrol-comp-${e.id}`,
+          name: userName,
+          action: 'completed',
+          item: courseTitle,
+          score: e.score !== null && e.score !== undefined ? `${e.score}%` : null,
+          type: 'completed',
+          created_at: e.completed_date || e.updated_at
+        });
+      } else if (e.status === 'IN_PROGRESS') {
+        activityList.push({
+          id: `enrol-prog-${e.id}`,
+          name: userName,
+          action: 'started',
+          item: courseTitle,
+          score: null,
+          type: 'progress',
+          created_at: e.updated_at
+        });
+      } else {
+        activityList.push({
+          id: `enrol-new-${e.id}`,
+          name: userName,
+          action: 'enrolled in',
+          item: courseTitle,
+          score: null,
+          type: 'enrolled',
+          created_at: e.enrolled_date || e.created_at
+        });
+      }
+    });
+
+    auditLogs.forEach(log => {
+      const userName = log.user?.full_name || log.user?.email?.split('@')[0] || 'User';
+      let action = 'performed';
+      let type = 'general';
+      const ev = (log.event_type || '').toLowerCase();
+      if (ev.includes('login')) {
+        action = 'logged in to';
+        type = 'login';
+      } else if (ev.includes('download') || ev.includes('certificate')) {
+        action = 'downloaded';
+        type = 'download';
+      } else if (ev.includes('user') || ev.includes('register')) {
+        action = 'added as';
+        type = 'user';
+      } else if (ev.includes('enrol')) {
+        action = 'enrolled in';
+        type = 'enrolled';
+      }
+      activityList.push({
+        id: `audit-${log.id}`,
+        name: userName,
+        action: action,
+        item: log.description || log.event_type || 'System Event',
+        score: null,
+        type: type,
+        created_at: log.created_at
+      });
+    });
+
+    activityList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    const recentActivity = activityList.slice(0, 10);
 
     res.status(200).json({
       success: true,
@@ -215,7 +353,8 @@ export const getOrganizationDashboard = async (req: Request, res: Response): Pro
         totalCpdHours,
         trendData,
         expiryData,
-        complianceData
+        complianceData,
+        recentActivity
       }
     });
   } catch (error: any) {

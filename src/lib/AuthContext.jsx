@@ -53,7 +53,7 @@ function mapPayloadToUser(payload) {
     full_name: payload.full_name || payload.name || '',
     role: role,
     role_type: role,
-    organization_id: payload.org || payload.organization_id || null,
+    organization_id: payload.org || payload.organization_id || payload.organisation_id || null,
     session_id: payload.sid || null,
     permissions: payload.permissions || [],
   };
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }) => {
           const realTimeUser = res.data.data;
           userObj.permissions = realTimeUser.permissions || [];
           if (realTimeUser.user) {
-            userObj.organization_id = realTimeUser.user.organization_id || userObj.organization_id;
+            userObj.organization_id = realTimeUser.user.organization_id || realTimeUser.user.organisation_id || realTimeUser.user.organization?.id || userObj.organization_id;
             userObj.full_name = realTimeUser.user.full_name || userObj.full_name;
             userObj.id = realTimeUser.user.id || userObj.id;
           }
@@ -141,8 +141,9 @@ export const AuthProvider = ({ children }) => {
             const userObj = mapPayloadToUser(payload);
             userObj.permissions = realTimeUser.permissions || [];
             if (realTimeUser.user) {
-              userObj.organization_id = realTimeUser.user.organization_id || userObj.organization_id;
+              userObj.organization_id = realTimeUser.user.organization_id || realTimeUser.user.organisation_id || realTimeUser.user.organization?.id || userObj.organization_id;
               userObj.full_name = realTimeUser.user.full_name || userObj.full_name;
+              userObj.id = realTimeUser.user.id || userObj.id;
             }
             
             setUser(userObj);
@@ -171,8 +172,9 @@ export const AuthProvider = ({ children }) => {
               const userObj = mapPayloadToUser(payload);
               userObj.permissions = realTimeUser.permissions || [];
               if (realTimeUser.user) {
-                userObj.organization_id = realTimeUser.user.organization_id || userObj.organization_id;
+                userObj.organization_id = realTimeUser.user.organization_id || realTimeUser.user.organisation_id || realTimeUser.user.organization?.id || userObj.organization_id;
                 userObj.full_name = realTimeUser.user.full_name || userObj.full_name;
+                userObj.id = realTimeUser.user.id || userObj.id;
               }
               setUser(userObj);
             } catch (err) {
@@ -349,7 +351,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       isLoadingAuth,
       // kept for backwards compat with AppLayout / TopBar
-      organisationId: user?.organization_id || null,
+      organisationId: user?.organization_id || user?.organisation_id || null,
       organisation: null,
       authError: null,
       isLoadingPublicSettings: false,

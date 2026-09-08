@@ -172,7 +172,7 @@ function ResultsScreen({ score, total, passMark, onRetry, onPass }) {
               </button>
             )}
             {passed && (
-              <button onClick={() => onPass && onPass()} className="flex-1 h-10 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-500 flex items-center justify-center gap-2 transition-colors">
+              <button onClick={() => onPass && onPass(pct)} className="flex-1 h-10 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-500 flex items-center justify-center gap-2 transition-colors">
                 Get Certificate <ArrowRight size={14} />
               </button>
             )}

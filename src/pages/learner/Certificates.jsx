@@ -1,15 +1,22 @@
 import React, { useState } from "react";
 import PageHeader from "@/components/ui/PageHeader";
 import { Award, Download, Search, FileText } from "lucide-react";
+import CertificateViewer from "@/components/cpd/CertificateViewer";
+import { useAuth } from "@/lib/AuthContext";
 
 const CERTIFICATES = [
-  { id: "CERT-2026-0891", course: "Information Security Basics", issueDate: "12 May 2026", expiryDate: "12 May 2027", status: "Valid" },
-  { id: "CERT-2026-0422", course: "Health & Safety Basics", issueDate: "01 Mar 2026", expiryDate: "01 Mar 2029", status: "Valid" },
-  { id: "CERT-2025-1104", course: "Fire Safety Awareness", issueDate: "15 Jan 2025", expiryDate: "15 Jan 2026", status: "Expired" },
+  { certId: "AAF-ORG-2026-001245", title: "Safeguarding Children", person: "Jane Smith", provider: "CareConnect Demo Authority", issued: "2026-09-07", expiry: "2028-09-07", status: "valid", hours: 2, category: "Mandatory", verified: true },
+  { certId: "CERT-2026-0891", title: "Information Security Basics", person: "Jane Smith", provider: "CareConnect Demo Authority", issued: "2026-05-12", expiry: "2027-05-12", status: "valid", hours: 3, category: "Compliance", verified: true },
+  { certId: "CERT-2026-0422", title: "Health & Safety Basics", person: "Jane Smith", provider: "CareConnect Demo Authority", issued: "2026-03-01", expiry: "2029-03-01", status: "valid", hours: 2, category: "Health & Safety", verified: true },
+  { certId: "CERT-2025-1104", title: "Fire Safety Awareness", person: "Jane Smith", provider: "CareConnect Demo Authority", issued: "2025-01-15", expiry: "2026-01-15", status: "expired", hours: 1, category: "Safety", verified: false },
 ];
 
 export default function Certificates() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [selectedCert, setSelectedCert] = useState(null);
+
+  const learnerName = user?.full_name || "Foster Carer";
 
   return (
     <div className="p-6 space-y-6 animate-fade-in max-w-[1440px] mx-auto">
@@ -44,32 +51,38 @@ export default function Certificates() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {CERTIFICATES.filter(c => c.course.toLowerCase().includes(search.toLowerCase())).map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+              {CERTIFICATES.filter(c => c.title.toLowerCase().includes(search.toLowerCase()) || c.certId.toLowerCase().includes(search.toLowerCase())).map((c) => (
+                <tr key={c.certId} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${c.status === 'Valid' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${c.status === 'valid' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                         <Award size={20} />
                       </div>
-                      <span className="font-bold text-slate-900">{c.course}</span>
+                      <span className="font-bold text-slate-900">{c.title}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 font-mono text-xs text-slate-500">{c.id}</td>
-                  <td className="px-4 py-4 text-slate-700">{c.issueDate}</td>
-                  <td className="px-4 py-4 text-slate-700">{c.expiryDate}</td>
+                  <td className="px-4 py-4 font-mono text-xs text-slate-500">{c.certId}</td>
+                  <td className="px-4 py-4 text-slate-700">{new Date(c.issued).toLocaleDateString("en-GB")}</td>
+                  <td className="px-4 py-4 text-slate-700">{new Date(c.expiry).toLocaleDateString("en-GB")}</td>
                   <td className="px-4 py-4 text-center">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${
-                      c.status === 'Valid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+                      c.status === 'valid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
                     }`}>
-                      {c.status}
+                      {c.status === 'valid' ? 'Valid' : 'Expired'}
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedCert({ ...c, person: learnerName })}
+                        className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                      >
                         <FileText size={14} /> View
                       </button>
-                      <button className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors inline-flex items-center gap-1.5">
+                      <button
+                        onClick={() => setSelectedCert({ ...c, person: learnerName })}
+                        className="px-3 py-1.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                      >
                         <Download size={14} /> PDF
                       </button>
                     </div>
@@ -80,6 +93,10 @@ export default function Certificates() {
           </table>
         </div>
       </div>
+
+      {selectedCert && (
+        <CertificateViewer cert={selectedCert} onClose={() => setSelectedCert(null)} />
+      )}
     </div>
   );
 }
