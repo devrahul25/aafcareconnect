@@ -6,7 +6,7 @@ const transporter = nodemailer.createTransport({
   secure: true,
   auth: {
     user: 'no-reply@aafcareconnect.com',
-    pass: 'londonthumakda@2026',
+    pass: 'allaboutfostering@css26',
   },
 });
 

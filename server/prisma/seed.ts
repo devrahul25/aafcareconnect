@@ -110,10 +110,8 @@ const ROLE_PERMISSIONS: Record<string, PermRef[]> = {
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // 1. Create or find the Demo Organisation
-  let demoOrg = await prisma.organization.findFirst({
-    where: { name: 'CareConnect Demo Authority' },
-  });
+  // 1. Find existing organization or create initial one only if DB is completely empty
+  let demoOrg = await prisma.organization.findFirst();
   if (!demoOrg) {
     demoOrg = await prisma.organization.create({
       data: {
@@ -122,8 +120,10 @@ async function main() {
         status: 'ACTIVE',
       },
     });
+    console.log(`✅ Created initial Organisation: ${demoOrg.name}`);
+  } else {
+    console.log(`✅ Using existing Organisation: ${demoOrg.name}`);
   }
-  console.log(`✅ Organisation: ${demoOrg.name}`);
 
   console.log('Upserting permissions...');
   

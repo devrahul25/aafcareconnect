@@ -1,22 +1,23 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2, CheckCircle2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
-import GoogleIcon from "@/components/GoogleIcon";
-import { firebaseSignIn, firebaseSignInWithGoogle } from "@/lib/firebase";
+import { firebaseSignIn } from "@/lib/firebase";
 import { authApi } from "@/api/authApi";
 import { useAuth } from "@/lib/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const successMessage = location.state?.message;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,53 +71,17 @@ export default function Login() {
     }
   };
 
-  const handleGoogle = async () => {
-    setError("");
-    setGoogleLoading(true);
-    try {
-      const idToken = await firebaseSignInWithGoogle();
-      const result = await authApi.socialLogin(idToken);
-      const { access_token, refresh_token, user } = result.data;
-      login(access_token, refresh_token, user);
-      navigate("/", { replace: true });
-    } catch (err) {
-      setError(err.response?.data?.error || err.message || "Google sign-in failed.");
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <AuthLayout
       title="Welcome to AafCareConnect"
       subtitle="Sign in to continue"
     >
-      {/* Social Login Buttons */}
-      <div className="space-y-3 mb-8">
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={googleLoading || loading}
-          className="w-full flex items-center justify-center gap-3 h-12 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200 shadow-sm"
-        >
-          {googleLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
-          ) : (
-            <GoogleIcon className="w-5 h-5" />
-          )}
-          <span className="text-sm font-medium text-slate-700">Continue with Google</span>
-        </button>
-      </div>
-
-      {/* Divider */}
-      <div className="relative mb-8">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-100" />
+      {successMessage && (
+        <div className="mb-6 p-3.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold text-center border border-emerald-200 flex items-center justify-center gap-2">
+          <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+          <span>{successMessage}</span>
         </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-4 text-slate-400 font-medium tracking-wide">OR</span>
-        </div>
-      </div>
+      )}
 
       {error && (
         <div className="mb-6 p-3 rounded-xl bg-red-50 text-red-600 text-sm text-center font-medium border border-red-100">
@@ -126,25 +91,37 @@ export default function Login() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-1.5 text-center">
-          <Label htmlFor="email" className="text-xs font-semibold text-slate-600 tracking-wide">Email</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="email" className="text-xs font-semibold text-slate-600 tracking-wide block">
+            Email
+          </Label>
           <div className="relative mx-auto max-w-full">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2.5} />
             <input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="ID"
+              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#f0f4f8] text-sm text-slate-900 border-none outline-none focus:ring-2 focus:ring-slate-200 transition-shadow placeholder:text-slate-400"
+              className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#f0f4f8] text-sm text-slate-900 border-none outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all placeholder:text-slate-400"
               required
             />
           </div>
         </div>
 
-        <div className="space-y-1.5 text-center">
-          <Label htmlFor="password" className="text-xs font-semibold text-slate-600 tracking-wide">Password</Label>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-xs font-semibold text-slate-600 tracking-wide">
+              Password
+            </Label>
+            <Link 
+              to="/forgot-password" 
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <div className="relative mx-auto max-w-full">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" strokeWidth={2.5} />
             <input
@@ -154,7 +131,7 @@ export default function Login() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#f0f4f8] text-sm text-slate-900 border-none outline-none focus:ring-2 focus:ring-slate-200 transition-shadow placeholder:text-slate-400"
+              className="w-full h-12 pl-11 pr-4 rounded-xl bg-[#f0f4f8] text-sm text-slate-900 border-none outline-none focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all placeholder:text-slate-400"
               required
             />
           </div>
@@ -163,8 +140,8 @@ export default function Login() {
         <div className="pt-2">
           <button
             type="submit"
-            disabled={loading || googleLoading}
-            className="w-full h-12 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 flex items-center justify-center"
+            disabled={loading}
+            className="w-full h-12 bg-[#0f172a] hover:bg-[#1e293b] text-white rounded-xl font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2 flex items-center justify-center disabled:opacity-60 shadow-sm"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -176,3 +153,4 @@ export default function Login() {
     </AuthLayout>
   );
 }
+

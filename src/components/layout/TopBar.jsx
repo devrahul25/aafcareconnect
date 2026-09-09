@@ -6,13 +6,14 @@ import { apiClient } from "@/api/apiClient";
 
 export default function TopBar({ user, title, actions }) {
   const [searchFocused, setSearchFocused] = useState(false);
+  const isSuperAdmin = user?.role === "super_admin";
 
   const { data: orgResponse } = useQuery({
     queryKey: ['organization', user?.organization_id],
     queryFn: () => apiClient.get(`/organizations/${user?.organization_id}`).then(res => res.data),
-    enabled: !!user?.organization_id,
+    enabled: !!user?.organization_id && !isSuperAdmin,
   });
-  const organization = orgResponse?.data;
+  const organization = isSuperAdmin ? null : orgResponse?.data;
 
   return (
     <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 sticky top-0 z-20">
@@ -69,11 +70,13 @@ export default function TopBar({ user, title, actions }) {
         </button>
         {user && (
           <div className="flex items-center gap-2 ml-1">
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-blue-600 text-xs font-bold shadow-sm border border-slate-200 overflow-hidden">
-              {organization?.logo_url ? (
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-sm border border-slate-200 overflow-hidden ${
+              isSuperAdmin ? 'bg-slate-900 text-white' : 'bg-white text-blue-600'
+            }`}>
+              {!isSuperAdmin && organization?.logo_url ? (
                 <img src={organization.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5" />
               ) : (
-                (user.full_name || "U").charAt(0).toUpperCase()
+                (user.full_name || (isSuperAdmin ? "SA" : "U")).charAt(0).toUpperCase()
               )}
             </div>
             <div className="hidden sm:block">

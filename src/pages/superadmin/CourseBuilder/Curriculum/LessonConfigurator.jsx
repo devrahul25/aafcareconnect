@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/apiClient';
 import { toast } from '@/components/ui/use-toast';
 import { 
@@ -20,6 +20,21 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
   const fileInputRef = useRef(null);
 
   const activeLesson = createdQuizLesson || lesson;
+
+  // Live Query for Quiz and its Questions/Answers to ensure instant UI updates
+  const { data: liveQuiz } = useQuery({
+    queryKey: ['quiz', activeLesson?.id],
+    queryFn: async () => {
+      if (!activeLesson?.id) return null;
+      const res = await apiClient.get(`/templates/quizzes/${activeLesson.id}`);
+      return res.data?.data || res.data || res;
+    },
+    enabled: !!activeLesson?.id && type === 'QUIZ',
+    refetchOnWindowFocus: false
+  });
+
+  const quizObj = liveQuiz || activeLesson;
+  const questionsList = quizObj?.questions || [];
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -46,6 +61,8 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
     onSuccess: (res) => {
       const created = res?.data || res;
       setCreatedQuizLesson(created);
+      queryClient.setQueryData(['quiz', created.id], created);
+      queryClient.invalidateQueries({ queryKey: ['quiz', created.id] });
       queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       toast({ title: "Quiz initialized", description: "You can now add questions and options below." });
     },
@@ -85,6 +102,10 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
       }
     },
     onSuccess: () => {
+      if (activeLesson?.id) {
+        queryClient.invalidateQueries({ queryKey: ['quiz', activeLesson.id] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       toast({ title: 'Success', description: 'Lesson saved successfully.' });
       onSuccess();
     },
@@ -281,7 +302,7 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
           )}
           
           {/* QUIZ SECTION: Not initialized yet */}
-          {type === 'QUIZ' && !activeLesson && (
+          {type === 'QUIZ' && !quizObj?.id && (
             <div className="p-5 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 border border-blue-100 rounded-2xl text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto">
                 <HelpCircle size={24} />
@@ -305,7 +326,7 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
           )}
 
           {/* QUIZ SECTION: Live Question & Option Configurator */}
-          {type === 'QUIZ' && activeLesson && (
+          {type === 'QUIZ' && quizObj?.id && (
             <div className="space-y-4 pt-2 border-t border-slate-100">
               
               {/* Guidance Info Banner */}
@@ -321,7 +342,7 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
 
               {/* Questions List */}
               <div className="space-y-4">
-                {activeLesson.questions?.length === 0 ? (
+                {questionsList.length === 0 ? (
                   <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
                     <HelpCircle size={28} className="text-slate-300 mx-auto mb-2" />
                     <p className="text-xs font-bold text-slate-700">No questions added yet</p>
@@ -329,12 +350,12 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {activeLesson.questions?.map((q, idx) => (
+                    {questionsList.map((q, idx) => (
                       <QuestionEditor 
                         key={q.id} 
                         question={q} 
                         index={idx} 
-                        quizId={activeLesson.id} 
+                        quizId={quizObj.id} 
                         courseId={courseId} 
                       />
                     ))}
@@ -344,9 +365,9 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
 
               {/* Add New Question Input Card */}
               <AddQuestionForm 
-                quizId={activeLesson.id} 
+                quizId={quizObj.id} 
                 courseId={courseId} 
-                numQuestions={activeLesson.questions?.length || 0} 
+                numQuestions={questionsList.length} 
               />
             </div>
           )}
@@ -355,8 +376,8 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
         {/* Footer Actions */}
         <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 px-6">
           <p className="text-xs text-slate-400">
-            {type === 'QUIZ' && activeLesson?.questions?.length > 0 
-              ? `${activeLesson.questions.length} Question${activeLesson.questions.length === 1 ? '' : 's'} configured` 
+            {type === 'QUIZ' && questionsList.length > 0 
+              ? `${questionsList.length} Question${questionsList.length === 1 ? '' : 's'} configured` 
               : 'All changes sync automatically'}
           </p>
           <div className="flex gap-2">
@@ -396,6 +417,7 @@ function AddQuestionForm({ quizId, courseId, numQuestions }) {
     }),
     onSuccess: () => {
       setText("");
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
       queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       toast({ title: "Question added", description: "Now add answer options below." });
     },
@@ -441,7 +463,10 @@ function QuestionEditor({ question, index, quizId, courseId }) {
 
   const deleteQuestionMutation = useMutation({
     mutationFn: () => apiClient.delete(`/templates/quizzes/${quizId}/questions/${question.id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', courseId] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
+    }
   });
 
   const addAnswerMutation = useMutation({
@@ -452,6 +477,7 @@ function QuestionEditor({ question, index, quizId, courseId }) {
     }),
     onSuccess: () => {
       setNewAnswerText("");
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
       queryClient.invalidateQueries({ queryKey: ['template', courseId] });
     },
     onError: (err) => {
@@ -463,20 +489,27 @@ function QuestionEditor({ question, index, quizId, courseId }) {
 
   const deleteAnswerMutation = useMutation({
     mutationFn: (answerId) => apiClient.delete(`/templates/quizzes/${quizId}/questions/${question.id}/answers/${answerId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', courseId] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
+    }
   });
 
   const toggleCorrectMutation = useMutation({
     mutationFn: (answerId) => apiClient.put(`/templates/quizzes/${quizId}/questions/${question.id}/answers/${answerId}`, {
       is_correct: true
     }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['template', courseId] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
+    }
   });
 
   const handleAddTrueFalse = async () => {
     try {
       await apiClient.post(`/templates/quizzes/${quizId}/questions/${question.id}/answers`, { text: "True", is_correct: true, sort_order: 0 });
       await apiClient.post(`/templates/quizzes/${quizId}/questions/${question.id}/answers`, { text: "False", is_correct: false, sort_order: 1 });
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
       queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       toast({ title: "True / False options added" });
     } catch (err) {
