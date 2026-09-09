@@ -55,14 +55,43 @@ export class FirebaseAdminService implements IIdentityProvider {
     }
   }
 
-  async updatePassword(uid: string, newPassword: string): Promise<void> {
+  async updatePassword(uid: string, newPassword: string, email?: string): Promise<string> {
     try {
-      await firebaseAuth.updateUser(uid, {
-        password: newPassword,
-      });
+      if (uid) {
+        await firebaseAuth.updateUser(uid, {
+          password: newPassword,
+        });
+        return uid;
+      }
     } catch (error: any) {
-      logger.error(`Firebase updatePassword failed for uid: ${uid}`, error);
-      throw error;
+      if (error.code !== 'auth/user-not-found') {
+        logger.error(`Firebase updatePassword failed for uid: ${uid}`, error);
+        throw error;
+      }
+      logger.warn(`Firebase user not found with UID ${uid}. Attempting recovery by email: ${email}`);
     }
+
+    if (email) {
+      try {
+        const userRecord = await firebaseAuth.getUserByEmail(email);
+        await firebaseAuth.updateUser(userRecord.uid, {
+          password: newPassword,
+        });
+        return userRecord.uid;
+      } catch (emailErr: any) {
+        if (emailErr.code === 'auth/user-not-found') {
+          const newUser = await firebaseAuth.createUser({
+            email,
+            password: newPassword,
+            emailVerified: false,
+          });
+          return newUser.uid;
+        }
+        logger.error(`Firebase recovery by email failed for ${email}:`, emailErr);
+        throw emailErr;
+      }
+    }
+
+    throw new Error('User not found in authentication provider');
   }
 }
