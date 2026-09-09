@@ -80,18 +80,13 @@ export class FirebaseAdminService implements IIdentityProvider {
         return userRecord.uid;
       } catch (emailErr: any) {
         if (emailErr.code === 'auth/user-not-found') {
-          const newUser = await firebaseAuth.createUser({
-            email,
-            password: newPassword,
-            emailVerified: false,
-          });
-          return newUser.uid;
+          throw new Error('User account does not exist. Please contact Super Admin.');
         }
-        logger.error(`Firebase recovery by email failed for ${email}:`, emailErr);
+        logger.error(`Firebase lookup failed for ${email}:`, emailErr);
         throw emailErr;
       }
     }
 
-    throw new Error('User not found in authentication provider');
+    throw new Error('User account does not exist. Please contact Super Admin.');
   }
 }

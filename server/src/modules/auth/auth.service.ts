@@ -310,10 +310,12 @@ export class AuthService {
 
   async forgotPassword(email: string, req?: Request) {
     const user = await AuthRepository.findUserByEmail(email);
-    if (!user) return true; // Fail silently to prevent enumeration
+    if (!user) {
+      throw new Error('User account does not exist. Please contact Super Admin.');
+    }
 
     if (user.status !== 'ACTIVE') {
-      throw new Error('Account inactive or suspended');
+      throw new Error('Account inactive or suspended. Please contact Super Admin.');
     }
 
     const { code, hashedToken } = OTPUtil.generateOTP();
@@ -333,7 +335,9 @@ export class AuthService {
 
   async resetPassword(email: string, code: string, newPassword: string, req?: Request) {
     const user = await AuthRepository.findUserByEmail(email);
-    if (!user) throw new Error('Invalid request');
+    if (!user) {
+      throw new Error('User account does not exist. Please contact Super Admin.');
+    }
 
     const token = await AuthRepository.getActivePasswordResetToken(email);
     if (!token) throw new Error('Code expired or invalid. Please request a new one.');
