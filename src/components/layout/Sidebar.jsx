@@ -57,14 +57,14 @@ const COMING_SOON = [
 export default function Sidebar({ user, collapsed, setCollapsed }) {
   const location = useLocation();
   const { logout, hasRole, hasPermission } = useAuth();
-  const isSuperAdmin = hasRole("super_admin");
+  const isSuperAdmin = hasRole("super_admin") || user?.role === "super_admin";
 
   const { data: orgResponse } = useQuery({
     queryKey: ['organization', user?.organization_id],
     queryFn: () => apiClient.get(`/organizations/${user?.organization_id}`).then(res => res.data),
-    enabled: !!user?.organization_id,
+    enabled: !!user?.organization_id && !isSuperAdmin,
   });
-  const organization = orgResponse?.data;
+  const organization = isSuperAdmin ? null : orgResponse?.data;
 
   // Dynamically build visible items based on permissions
   const visibleItems = isSuperAdmin
@@ -103,11 +103,13 @@ export default function Sidebar({ user, collapsed, setCollapsed }) {
       {!collapsed && user && (
         <div className="px-3 py-2.5 border-b border-white/5">
           <div className="flex items-center gap-2.5 bg-white/5 rounded-lg px-2.5 py-2">
-            <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-blue-600 text-[10px] font-bold flex-shrink-0 overflow-hidden">
-              {organization?.logo_url ? (
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 overflow-hidden ${
+              isSuperAdmin ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'
+            }`}>
+              {!isSuperAdmin && organization?.logo_url ? (
                 <img src={organization.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5" />
               ) : (
-                (user.full_name || "U").charAt(0).toUpperCase()
+                (user.full_name || (isSuperAdmin ? "SA" : "U")).charAt(0).toUpperCase()
               )}
             </div>
             <div className="min-w-0">

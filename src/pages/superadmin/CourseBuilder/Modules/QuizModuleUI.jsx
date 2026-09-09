@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
 import { HelpCircle, Trash2, CheckCircle2, Plus, GripVertical } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/api/apiClient';
 import { toast } from '@/components/ui/use-toast';
 
 export default function QuizModuleUI({ section, courseId }) {
   const queryClient = useQueryClient();
-  const quiz = section.quizzes?.[0]; // Get the first quiz if exists
+  const initialQuiz = section.quizzes?.[0]; // Get the first quiz if exists
   
+  const { data: liveQuiz } = useQuery({
+    queryKey: ['quiz', initialQuiz?.id],
+    queryFn: async () => {
+      if (!initialQuiz?.id) return null;
+      const res = await apiClient.get(`/templates/quizzes/${initialQuiz.id}`);
+      return res.data?.data || res.data || res;
+    },
+    enabled: !!initialQuiz?.id,
+    refetchOnWindowFocus: false
+  });
+
+  const quiz = liveQuiz || initialQuiz;
   const questions = quiz?.questions || [];
 
   const [newQuestionText, setNewQuestionText] = useState("");
@@ -24,8 +36,12 @@ export default function QuizModuleUI({ section, courseId }) {
       }
       return { data: quiz };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['template', courseId]);
+    onSuccess: (res) => {
+      const created = res?.data || res;
+      if (created?.id) {
+        queryClient.invalidateQueries({ queryKey: ['quiz', created.id] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       if (!quiz) toast({ title: "Quiz initialized", description: "You can now add questions." });
     }
   });
@@ -37,7 +53,8 @@ export default function QuizModuleUI({ section, courseId }) {
     }),
     onSuccess: () => {
       setNewQuestionText("");
-      queryClient.invalidateQueries(['template', courseId]);
+      queryClient.invalidateQueries({ queryKey: ['quiz', quiz.id] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
       toast({ title: "Question added" });
     },
     onError: () => toast({ title: "Error", description: "Failed to add question", variant: "destructive" })
@@ -45,7 +62,10 @@ export default function QuizModuleUI({ section, courseId }) {
 
   const deleteQuestionMutation = useMutation({
     mutationFn: (questionId) => apiClient.delete(`/templates/quizzes/${quiz.id}/questions/${questionId}`),
-    onSuccess: () => queryClient.invalidateQueries(['template', courseId])
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz', quiz.id] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
+    }
   });
 
   return (
@@ -127,21 +147,28 @@ function QuestionEditor({ question, index, quizId, courseId, onDelete }) {
     }),
     onSuccess: () => {
       setNewAnswerText("");
-      queryClient.invalidateQueries(['template', courseId]);
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
     },
     onError: () => toast({ title: "Error", description: "Failed to add answer", variant: "destructive" })
   });
 
   const deleteAnswerMutation = useMutation({
     mutationFn: (answerId) => apiClient.delete(`/templates/quizzes/${quizId}/questions/${question.id}/answers/${answerId}`),
-    onSuccess: () => queryClient.invalidateQueries(['template', courseId])
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
+    }
   });
 
   const toggleCorrectMutation = useMutation({
     mutationFn: (answerId) => apiClient.put(`/templates/quizzes/${quizId}/questions/${question.id}/answers/${answerId}`, {
       is_correct: true
     }),
-    onSuccess: () => queryClient.invalidateQueries(['template', courseId])
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quiz', quizId] });
+      queryClient.invalidateQueries({ queryKey: ['template', courseId] });
+    }
   });
 
   const answers = question.answers || [];

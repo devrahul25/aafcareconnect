@@ -271,7 +271,13 @@ export const listOrganizations = async (req: Request, res: Response): Promise<vo
       include: {
         subscriptions: true,
         users: {
-          take: 1, // Getting one user to act as the primary admin in the list view
+          where: {
+            deleted_at: null,
+          },
+          orderBy: {
+            created_at: 'asc'
+          },
+          take: 1,
         },
         courses: {
           select: {
@@ -316,6 +322,56 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
         registration_number,
       }
     });
+
+    // Update primary Admin User's email if email was changed
+    if (email && email.trim()) {
+      const cleanEmail = email.trim().toLowerCase();
+      
+      // Find the org admin user (or primary user)
+      let adminUser = await prisma.user.findFirst({
+        where: {
+          organization_id: id as string,
+          user_roles: {
+            some: {
+              role: {
+                name: 'org_admin'
+              }
+            }
+          }
+        },
+        orderBy: { created_at: 'asc' }
+      });
+
+      if (!adminUser) {
+        adminUser = await prisma.user.findFirst({
+          where: { organization_id: id as string },
+          orderBy: { created_at: 'asc' }
+        });
+      }
+
+      if (adminUser) {
+        // Ensure user is active and not soft-deleted
+        await prisma.user.update({
+          where: { id: adminUser.id },
+          data: {
+            email: cleanEmail,
+            status: 'ACTIVE',
+            deleted_at: null
+          }
+        });
+
+        // Update email in Firebase Auth if user exists
+        if (adminUser.firebase_uid) {
+          try {
+            await firebaseAuth.updateUser(adminUser.firebase_uid, { email: cleanEmail });
+          } catch (firebaseErr: any) {
+            if (firebaseErr.code !== 'auth/user-not-found') {
+              console.error(`Failed to update Firebase email for user ${adminUser.firebase_uid}:`, firebaseErr);
+            }
+          }
+        }
+      }
+    }
 
     if (Array.isArray(assigned_template_ids)) {
       const templateIds: string[] = assigned_template_ids;
@@ -368,7 +424,25 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
       }
     }
 
-    res.status(200).json({ success: true, data: organization });
+    // Return the updated organization with users, subscriptions, and courses included
+    const updatedOrg = await prisma.organization.findUnique({
+      where: { id: id as string },
+      include: {
+        subscriptions: true,
+        users: {
+          take: 1,
+          orderBy: { created_at: 'asc' }
+        },
+        courses: {
+          select: {
+            parent_template_id: true,
+            status: true
+          }
+        }
+      }
+    });
+
+    res.status(200).json({ success: true, data: updatedOrg || organization });
   } catch (error: any) {
     console.error('Update Organization Error:', error);
     res.status(500).json({ error: error.message || 'Failed to update organization' });
