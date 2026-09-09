@@ -31,6 +31,8 @@ export interface IIdentityProvider {
    * Updates a user's password
    * @param uid The unique Identity Provider ID
    * @param newPassword The new raw password
+   * @param email Optional email to locate the user if UID is outdated or missing
+   * @returns The resolved UID in the identity provider
    */
-  updatePassword(uid: string, newPassword: string): Promise<void>;
+  updatePassword(uid: string, newPassword: string, email?: string): Promise<string>;
 }

@@ -238,6 +238,16 @@ export class AuthRepository {
     });
   }
 
+  static async updateUserPassword(userId: string, firebaseUid: string, passwordHash?: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        firebase_uid: firebaseUid,
+        ...(passwordHash ? { password_hash: passwordHash } : {}),
+      }
+    });
+  }
+
   static async logAudit(eventType: AuditEventType, userId?: string, orgId?: string, metadata?: any, req?: Request) {
     await prisma.auditLog.create({
       data: {

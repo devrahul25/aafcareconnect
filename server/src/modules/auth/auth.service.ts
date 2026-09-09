@@ -8,6 +8,7 @@ import { logger } from '../../config/logger';
 import crypto from 'crypto';
 import { tokenService } from '../../shared/providers/token/jwt.token.service';
 import { env } from '../../config/env';
+import bcrypt from 'bcrypt';
 
 export class AuthService {
   private identityProvider: IIdentityProvider;
@@ -355,13 +356,18 @@ export class AuthService {
     // 1. Mark token consumed
     await AuthRepository.markTokenAsConsumed(token.id);
 
-    // 2. Update password in Firebase
-    await this.identityProvider.updatePassword(user.firebase_uid, newPassword);
+    // 2. Update password in Firebase (with self-healing fallback by email)
+    const resolvedUid = await this.identityProvider.updatePassword(user.firebase_uid, newPassword, email);
 
-    // 3. Increment session_version and revoke all sessions
+    // 3. Hash password with bcrypt and update DB record (syncing valid firebase_uid)
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+    await AuthRepository.updateUserPassword(user.id, resolvedUid || user.firebase_uid, passwordHash);
+
+    // 4. Increment session_version and revoke all sessions
     await AuthRepository.revokeAllUserSessions(user.id, 'PASSWORD_RESET');
 
-    // 4. Log audit
+    // 5. Log audit
     await AuthRepository.logAudit('PASSWORD_CHANGED', user.id, user.organization_id, { success: true }, req);
 
     return true;
