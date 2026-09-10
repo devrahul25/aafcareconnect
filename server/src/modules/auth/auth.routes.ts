@@ -14,14 +14,26 @@ const registerLimiter = rateLimit({
 });
 
 const resendLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 resend attempts per IP per hour
-  message: { success: false, error: 'Too many resend attempts. Please try again later.' },
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many attempts. Please try again in a few minutes.' },
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // 15 attempts per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many password reset attempts. Please try again in a few minutes.' },
 });
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 login attempts per IP
+  max: 15, // 15 login attempts per IP
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { success: false, error: 'Too many login attempts. Please try again later.' },
 });
 
@@ -44,7 +56,7 @@ router.post('/logout', validate(logoutSchema), AuthController.logout);
 router.post('/logout-all', requireAuth, AuthController.logoutAll); // Enforces JWT validity + Session state
 
 // Password Management Endpoints
-router.post('/forgot-password', resendLimiter, validate(forgotPasswordSchema), AuthController.forgotPassword);
+router.post('/forgot-password', forgotPasswordLimiter, validate(forgotPasswordSchema), AuthController.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), AuthController.resetPassword);
 
 // Social Login Endpoints

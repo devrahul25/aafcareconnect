@@ -14,6 +14,9 @@ import { prisma } from './config/database';
 
 export const app = express();
 
+// Trust reverse proxy (Nginx) headers for accurate client IP resolution & rate limiting
+app.set('trust proxy', 1);
+
 // 1. Security & utility middlewares
 app.use(requestIdMiddleware);
 app.use(helmet({
