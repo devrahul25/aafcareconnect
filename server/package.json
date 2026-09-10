@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "npm run prisma:generate && tsx watch --clear-screen=false src/index.ts",
-    "build": "npm run prisma:generate && tsc --project tsconfig.build.json",
+    "copy:templates": "node -e \"const fs=require('fs'),path=require('path'); const src=path.join(__dirname,'src/shared/providers/template/templates'), dst=path.join(__dirname,'dist/shared/providers/template/templates'); if(fs.existsSync(src)){ fs.mkdirSync(dst,{recursive:true}); fs.cpSync(src,dst,{recursive:true}); }\"",
+    "build": "npm run prisma:generate && tsc --project tsconfig.build.json && npm run copy:templates",
     "start": "node dist/index.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
