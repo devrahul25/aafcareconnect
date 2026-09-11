@@ -10,19 +10,25 @@ export class SmtpEmailProvider implements IEmailProvider {
     this.transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,
-      secure: env.SMTP_SECURE, // true for 465, false for other ports
+      secure: env.SMTP_SECURE, // true for 465, false for 587
       auth: {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
       },
+      connectionTimeout: 10000, // 10 seconds timeout
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
 
-    // Verify connection configuration
+    // Verify connection configuration asynchronously
     this.transporter.verify((error, success) => {
       if (error) {
-        logger.error('SMTP Connection Error:', error);
+        logger.error('SMTP Connection Verify Error:', error.message);
       } else {
-        logger.info('SMTP Server is ready to take our messages');
+        logger.info('SMTP Server is verified and ready to send messages');
       }
     });
   }
@@ -36,8 +42,8 @@ export class SmtpEmailProvider implements IEmailProvider {
         html: htmlBody,
       });
       logger.info(`Email sent successfully to ${to}. Message ID: ${info.messageId}`);
-    } catch (error) {
-      logger.error(`Failed to send email to ${to}:`, error);
+    } catch (error: any) {
+      logger.error(`Failed to send email to ${to}: ${error.message}`);
       throw error;
     }
   }
