@@ -47,7 +47,7 @@ const envSchema = z.object({
   // SMTP Email
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
-  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_SECURE: z.preprocess((val) => val === true || val === 'true' || val === '1', z.boolean()).default(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM_EMAIL: z.string().email().default('no-reply@aafcareconnect.com'),
