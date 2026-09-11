@@ -15,13 +15,12 @@ export class EmailService {
     
     if (provider) {
       this.provider = provider;
-    } else if (env.SMTP_HOST) {
+    } else if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS) {
       this.provider = new SmtpEmailProvider();
+      logger.info(`SMTP Provider configured with host: ${env.SMTP_HOST}:${env.SMTP_PORT}`);
     } else {
       this.provider = new MockEmailProvider();
-      if (env.NODE_ENV === 'production') {
-        logger.warn('EmailService instantiated without a production provider or SMTP configuration! Falling back to Mock.');
-      }
+      logger.warn('⚠️ [EMAIL WARNING] SMTP_HOST, SMTP_USER, or SMTP_PASS is missing in .env! Emails are NOT being sent over the network (Mock Provider is active). Add SMTP settings in .env to deliver real emails.');
     }
   }
 
