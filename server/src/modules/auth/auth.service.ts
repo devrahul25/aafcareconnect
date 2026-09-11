@@ -325,9 +325,9 @@ export class AuthService {
     try {
       await this.emailService.sendPasswordResetEmail(email, user.full_name || email.split('@')[0], code);
       await AuthRepository.logAudit('PASSWORD_RESET_REQUEST', user.id, user.organization_id, null, req);
-    } catch (error) {
-      logger.error('Forgot password email failed', error);
-      throw new Error('Failed to send reset email. Please try again later.');
+    } catch (error: any) {
+      logger.error(`Forgot password email failed: ${error?.message || error}`);
+      throw new Error(error?.message ? `Failed to send reset email: ${error.message}` : 'Failed to send reset email. Please try again later.');
     }
 
     return true;
