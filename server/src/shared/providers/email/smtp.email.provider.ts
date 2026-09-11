@@ -7,10 +7,16 @@ export class SmtpEmailProvider implements IEmailProvider {
   private transporter: nodemailer.Transporter;
 
   constructor() {
+    // Port 465 uses direct SSL (secure: true).
+    // Port 587 uses STARTTLS (secure: false, requireTLS: true).
+    const isPort465 = Number(env.SMTP_PORT) === 465;
+    const isSecure = isPort465 || env.SMTP_SECURE === true;
+
     this.transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
-      port: env.SMTP_PORT,
-      secure: env.SMTP_SECURE, // true for 465, false for 587
+      port: Number(env.SMTP_PORT),
+      secure: isSecure,
+      requireTLS: !isSecure, // enforce STARTTLS on port 587
       auth: {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
