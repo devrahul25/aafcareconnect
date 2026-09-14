@@ -44,7 +44,10 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
-  // SMTP Email
+  // Email Providers
+  RESEND_API_KEY: z.string().optional(),
+  BREVO_API_KEY: z.string().optional(),
+  SENDGRID_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_SECURE: z.preprocess((val) => val === true || val === 'true' || val === '1', z.boolean()).default(false),

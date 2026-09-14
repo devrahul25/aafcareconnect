@@ -3,6 +3,8 @@ import { ITemplateRenderer } from '../template/template.renderer.interface';
 import { HandlebarsRenderer } from '../template/handlebars.renderer';
 import { MockEmailProvider } from './mock.email.provider';
 import { SmtpEmailProvider } from './smtp.email.provider';
+import { ResendEmailProvider } from './resend.email.provider';
+import { BrevoEmailProvider } from './brevo.email.provider';
 import { env } from '../../../config/env';
 import { logger } from '../../../config/logger';
 
@@ -15,12 +17,18 @@ export class EmailService {
     
     if (provider) {
       this.provider = provider;
+    } else if (env.RESEND_API_KEY) {
+      this.provider = new ResendEmailProvider();
+      logger.info('Resend HTTPS API Email Provider initialized');
+    } else if (env.BREVO_API_KEY) {
+      this.provider = new BrevoEmailProvider();
+      logger.info('Brevo HTTPS API Email Provider initialized');
     } else if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS) {
       this.provider = new SmtpEmailProvider();
       logger.info(`SMTP Provider configured with host: ${env.SMTP_HOST}:${env.SMTP_PORT}`);
     } else {
       this.provider = new MockEmailProvider();
-      logger.warn('⚠️ [EMAIL WARNING] SMTP_HOST, SMTP_USER, or SMTP_PASS is missing in .env! Emails are NOT being sent over the network (Mock Provider is active). Add SMTP settings in .env to deliver real emails.');
+      logger.warn('⚠️ [EMAIL WARNING] No Email Provider configured in .env! Emails are NOT being sent over the network (Mock Provider is active). Add RESEND_API_KEY, BREVO_API_KEY, or SMTP settings in .env to deliver real emails.');
     }
   }
 

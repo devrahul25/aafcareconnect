@@ -369,7 +369,7 @@ export class AuthService {
     await AuthRepository.updateUserPassword(user.id, resolvedUid || user.firebase_uid, passwordHash);
 
     // 4. Increment session_version and revoke all sessions
-    await AuthRepository.revokeAllUserSessions(user.id, 'PASSWORD_RESET');
+    await AuthRepository.revokeAllUserSessions(user.id, 'LOGOUT_ALL');
 
     // 5. Log audit
     await AuthRepository.logAudit('PASSWORD_CHANGED', user.id, user.organization_id, { success: true }, req);
