@@ -1,4 +1,4 @@
-import { PrismaClient, UserStatus, VerificationTokenType, AuditEventType } from '@prisma/client';
+import { PrismaClient, UserStatus, VerificationTokenType, AuditEventType, SessionRevokedReason } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { Request } from 'express';
@@ -434,14 +434,14 @@ export class AuthRepository {
     });
   }
 
-  static async revokeSessionByFamily(familyId: string, reason: any) {
+  static async revokeSessionByFamily(familyId: string, reason: SessionRevokedReason) {
     return prisma.userSession.updateMany({
       where: { family_id: familyId, revoked_at: null },
       data: { revoked_at: new Date(), revoked_reason: reason }
     });
   }
 
-  static async revokeAllUserSessions(userId: string, reason: any) {
+  static async revokeAllUserSessions(userId: string, reason: SessionRevokedReason = 'LOGOUT_ALL') {
     return prisma.$transaction(async (tx) => {
       // Increment user session_version
       await tx.user.update({
