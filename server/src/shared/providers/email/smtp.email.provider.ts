@@ -1,31 +1,45 @@
+import net from 'net';
 import tls from 'tls';
 import { IEmailProvider } from './email.provider.interface';
 import { env } from '../../../config/env';
 import { logger } from '../../../config/logger';
 
 export class SmtpEmailProvider implements IEmailProvider {
-  private sendViaDirectTls(to: string, subject: string, htmlBody: string): Promise<void> {
+  private sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const host = env.SMTP_HOST || 'smtp.zoho.eu';
       const port = Number(env.SMTP_PORT) || 465;
+      const isPort465 = port === 465;
       const user = env.SMTP_USER || 'no-reply@aafcareconnect.com';
       const pass = env.SMTP_PASS || '';
       const fromEmail = env.SMTP_FROM_EMAIL || user;
       const fromName = env.SMTP_FROM_NAME || 'AAF CareConnect';
 
-      const socket = tls.connect(port, host, { rejectUnauthorized: false }, () => {
-        logger.debug(`Connected to SMTP server ${host}:${port} via TLS`);
-      });
-
+      let socket: any;
       let state = 'INIT';
       let authStarted = false;
 
-      socket.on('data', (data) => {
+      function handleData(data: Buffer) {
         const msg = data.toString();
 
         if (state === 'INIT' && msg.startsWith('220')) {
-          state = 'EHLO';
+          state = isPort465 ? 'EHLO' : 'STARTTLS_EHLO';
           socket.write('EHLO aafcareconnect.com\r\n');
+        } else if (state === 'STARTTLS_EHLO' && (msg.startsWith('250-') || msg.startsWith('250 '))) {
+          state = 'STARTTLS_CMD';
+          socket.write('STARTTLS\r\n');
+        } else if (state === 'STARTTLS_CMD' && msg.startsWith('220')) {
+          // Upgrade plain socket to TLS on Port 587
+          state = 'EHLO';
+          const tlsSocket = tls.connect({
+            socket,
+            rejectUnauthorized: false,
+            servername: host
+          });
+          socket = tlsSocket;
+          tlsSocket.on('data', handleData);
+          tlsSocket.on('error', (err) => reject(err));
+          tlsSocket.write('EHLO aafcareconnect.com\r\n');
         } else if (state === 'EHLO' && (msg.startsWith('250-') || msg.startsWith('250 '))) {
           if (!authStarted) {
             authStarted = true;
@@ -62,7 +76,7 @@ export class SmtpEmailProvider implements IEmailProvider {
           ].join('\r\n');
           socket.write(emailContent + '\r\n');
         } else if (state === 'BODY' && msg.startsWith('250')) {
-          logger.info(`Email sent successfully to ${to} via Direct SMTP TLS`);
+          logger.info(`Email sent successfully to ${to} via SMTP (Port ${port})`);
           socket.write('QUIT\r\n');
           socket.end();
           resolve();
@@ -71,14 +85,25 @@ export class SmtpEmailProvider implements IEmailProvider {
           socket.end();
           reject(new Error(msg.trim()));
         }
-      });
+      }
 
-      socket.on('error', (err) => {
+      if (isPort465) {
+        socket = tls.connect(port, host, { rejectUnauthorized: false, servername: host }, () => {
+          logger.debug(`Connected to ${host}:${port} via SSL`);
+        });
+      } else {
+        socket = net.createConnection(port, host, () => {
+          logger.debug(`Connected to ${host}:${port} via STARTTLS`);
+        });
+      }
+
+      socket.on('data', handleData);
+      socket.on('error', (err: any) => {
         logger.error('SMTP Socket error:', err);
         reject(err);
       });
 
-      socket.setTimeout(12000, () => {
+      socket.setTimeout(15000, () => {
         socket.destroy();
         reject(new Error('SMTP Connection Timeout'));
       });
@@ -87,7 +112,7 @@ export class SmtpEmailProvider implements IEmailProvider {
 
   async sendEmail(to: string, subject: string, htmlBody: string): Promise<void> {
     try {
-      await this.sendViaDirectTls(to, subject, htmlBody);
+      await this.sendViaSmtp(to, subject, htmlBody);
     } catch (error: any) {
       logger.error(`Failed to send email to ${to}: ${error.message}`);
       throw error;
