@@ -62,10 +62,10 @@ export default function InviteStaffModal({ onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col my-auto max-h-[90vh] sm:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
         
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white flex-shrink-0">
           <h2 className="text-lg font-bold text-slate-900">Invite Staff Member</h2>
           <button 
             onClick={onClose}
@@ -75,7 +75,7 @@ export default function InviteStaffModal({ onClose, onSuccess }) {
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6 flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {successData ? (
             <div className="text-center space-y-4">
               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">

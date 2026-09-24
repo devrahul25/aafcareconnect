@@ -78,10 +78,10 @@ export default function EditOrganisationModal({ isOpen, onClose, org, onSave }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg my-auto max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0 bg-white">
           <div className="flex items-center gap-2 text-slate-800">
             <Building2 size={20} className="text-blue-600" />
             <h2 className="text-lg font-bold">Edit Organisation</h2>
@@ -95,7 +95,7 @@ export default function EditOrganisationModal({ isOpen, onClose, org, onSave }) 
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6 flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
               {error}
@@ -167,9 +167,9 @@ export default function EditOrganisationModal({ isOpen, onClose, org, onSave }) 
               {isLoadingTemplates ? (
                 <div className="text-sm text-slate-500 py-2">Loading templates...</div>
               ) : (
-                <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-2">
+                <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-2 border border-slate-100 rounded-lg p-2 bg-slate-50/50">
                   {templates.map(template => (
-                    <label key={template.id} className="flex items-start gap-3 p-2 rounded-md hover:bg-slate-50 cursor-pointer">
+                    <label key={template.id} className="flex items-start gap-3 p-2 rounded-md hover:bg-white bg-white/60 border border-slate-100 cursor-pointer transition-colors">
                       <input 
                         type="checkbox" 
                         className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
@@ -185,12 +185,12 @@ export default function EditOrganisationModal({ isOpen, onClose, org, onSave }) 
                         }}
                       />
                       <div className="flex-1">
-                        <p className="text-sm text-slate-700">{template.title}</p>
+                        <p className="text-sm font-medium text-slate-700">{template.title}</p>
                       </div>
                     </label>
                   ))}
                   {templates.length === 0 && (
-                    <p className="text-sm text-slate-500 italic">No global templates available.</p>
+                    <p className="text-sm text-slate-500 italic p-2">No global templates available.</p>
                   )}
                 </div>
               )}
@@ -199,7 +199,7 @@ export default function EditOrganisationModal({ isOpen, onClose, org, onSave }) 
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 flex-shrink-0">
           <button 
             type="button"
             onClick={onClose}

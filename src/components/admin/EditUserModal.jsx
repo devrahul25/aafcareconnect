@@ -46,9 +46,9 @@ export default function EditUserModal({ user, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col my-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0 bg-white">
           <div>
             <h3 className="font-bold text-slate-900">Edit User Role</h3>
             <p className="text-xs text-slate-500 mt-1">Change role for {user.full_name || user.email}</p>
@@ -61,7 +61,7 @@ export default function EditUserModal({ user, onClose, onSuccess }) {
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <div className="space-y-1.5">
             <label className="text-sm font-semibold text-slate-700">Role</label>
             {loadingRoles ? (
@@ -85,7 +85,7 @@ export default function EditUserModal({ user, onClose, onSuccess }) {
           </div>
         </div>
 
-        <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+        <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 flex-shrink-0">
           <button 
             onClick={onClose}
             className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"

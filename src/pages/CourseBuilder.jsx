@@ -132,10 +132,10 @@ function CategoryManagerModal({ categories, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 animate-fade-in overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col my-auto max-h-[90vh] sm:max-h-[85vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0 bg-white">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
               <Tag size={15} className="text-violet-600" />
@@ -151,7 +151,7 @@ function CategoryManagerModal({ categories, onClose, onSaved }) {
         </div>
 
         {/* Add new */}
-        <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/60">
+        <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/60 flex-shrink-0">
           <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2 block">Add New Category</label>
           <div className="flex gap-2">
             <input
@@ -173,7 +173,7 @@ function CategoryManagerModal({ categories, onClose, onSaved }) {
         </div>
 
         {/* Category list */}
-        <div className="overflow-y-auto flex-1 px-6 py-3 space-y-1">
+        <div className="overflow-y-auto flex-1 min-h-0 overscroll-contain px-6 py-3 space-y-1">
           {list.map((cat, idx) => {
             const count = courseCounts[cat] || 0;
             const isRenaming = editingIdx === idx;

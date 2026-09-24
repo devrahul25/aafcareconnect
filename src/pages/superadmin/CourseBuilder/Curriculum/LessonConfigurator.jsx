@@ -119,11 +119,11 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col my-auto max-h-[90vh] border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col my-auto max-h-[90vh] sm:max-h-[88vh] border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70 flex-shrink-0">
           <div className="flex items-center gap-3 text-slate-800">
             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
               {type === 'VIDEO' && <Video size={18} />}
@@ -147,7 +147,7 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
         </div>
 
         {/* Form Body */}
-        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+        <div className="p-6 space-y-5 flex-1 min-h-0 overflow-y-auto overscroll-contain">
           
           {/* Title & Basic Settings */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -374,7 +374,7 @@ export default function LessonConfigurator({ isOpen, onClose, courseId, sectionI
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 px-6">
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 px-6 flex-shrink-0">
           <p className="text-xs text-slate-400">
             {type === 'QUIZ' && questionsList.length > 0 
               ? `${questionsList.length} Question${questionsList.length === 1 ? '' : 's'} configured` 

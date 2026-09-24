@@ -563,9 +563,9 @@ export default function CreateOrganisation() {
 
       {/* Manage Organisation Types Modal */}
       {isManageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col my-auto max-h-[90vh]">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-white">
               <h3 className="font-bold text-slate-900">Manage Organisation Types</h3>
               <button 
                 onClick={() => setIsManageModalOpen(false)}
@@ -575,7 +575,7 @@ export default function CreateOrganisation() {
               </button>
             </div>
             
-            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain">
               {isLoadingTypes ? (
                 <div className="text-center py-4 text-slate-500 text-sm">Loading types...</div>
               ) : (
@@ -600,7 +600,7 @@ export default function CreateOrganisation() {
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2 flex-shrink-0">
               <input 
                 type="text" 
                 value={newTypeName}
