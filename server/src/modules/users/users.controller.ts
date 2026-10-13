@@ -11,7 +11,7 @@ export class UsersController {
         try {
             const { status, search, page, limit, organization_id, role } = req.query;
             
-            const isSuperAdmin = req.user?.user_roles?.some((ur: any) => ur.role?.name === 'super_admin');
+            const isSuperAdmin = req.user?.user_roles?.some((ur: any) => ur.role?.name === 'super_admin') || (req as any).permissions?.has('admin:manage');
             const targetOrgId = isSuperAdmin ? (organization_id as string | undefined) : req.user?.organization_id;
 
             const result = await UsersService.getUsers({

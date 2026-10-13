@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BellRing, CheckCircle2, X } from "lucide-react";
 import { ALERTS } from "@/lib/complianceData";
 
@@ -8,9 +8,13 @@ const ALERT_CFG = {
   info:     { bg: "bg-blue-50",   border: "border-l-blue-500",   dot: "bg-blue-500",  text: "text-blue-700"  },
 };
 
-export default function AlertCentre() {
-  const [alerts, setAlerts] = useState(ALERTS);
+export default function AlertCentre({ alertsList }) {
+  const [alerts, setAlerts] = useState(alertsList && alertsList.length > 0 ? alertsList : ALERTS);
   const [filter, setFilter] = useState("all");
+
+  useEffect(() => {
+    if (alertsList && alertsList.length > 0) setAlerts(alertsList);
+  }, [alertsList]);
 
   const dismiss = (id) => setAlerts(a => a.filter(x => x.id !== id));
   const markRead = (id) => setAlerts(a => a.map(x => x.id === id ? { ...x, read: true } : x));

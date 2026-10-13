@@ -2,9 +2,11 @@ import { PrismaClient } from '@prisma/client';
 import { prisma } from '../../config/database';
 
 export class RolesRepository {
-  static async findAllByOrg(organization_id: string) {
+  static async findAllByOrg(organization_id?: string) {
+    const where: any = {};
+    if (organization_id) where.organization_id = organization_id;
     return prisma.role.findMany({
-      where: { organization_id },
+      where,
       include: {
         _count: {
           select: { user_roles: true }

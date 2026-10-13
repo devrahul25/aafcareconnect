@@ -13,10 +13,11 @@ const ACT_CFG = {
   green: { bg: "bg-emerald-50",border: "border-l-emerald-500",icon: CheckCircle2, text: "text-emerald-700" },
 };
 
-export default function OfstedReadiness() {
-  const readyColor = OFSTED_SCORE >= 90 ? "text-emerald-600" : OFSTED_SCORE >= 75 ? "text-amber-600" : "text-red-600";
+export default function OfstedReadiness({ score }) {
+  const currentScore = score !== undefined ? score : OFSTED_SCORE;
+  const readyColor = currentScore >= 90 ? "text-emerald-600" : currentScore >= 75 ? "text-amber-600" : "text-red-600";
   const circumference = 2 * Math.PI * 54;
-  const dashOffset = circumference * (1 - OFSTED_SCORE / 100);
+  const dashOffset = circumference * (1 - currentScore / 100);
 
   return (
     <div className="space-y-5 animate-fade-in">

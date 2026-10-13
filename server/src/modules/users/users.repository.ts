@@ -23,6 +23,7 @@ export class UsersRepository {
             where.OR = [
                 { email: { contains: search, mode: 'insensitive' } },
                 { full_name: { contains: search, mode: 'insensitive' } },
+                { organization: { name: { contains: search, mode: 'insensitive' } } },
             ];
         }
         if (role) {

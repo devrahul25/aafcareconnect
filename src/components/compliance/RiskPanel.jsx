@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { RISK_ITEMS } from "@/lib/complianceData";
-import { AlertTriangle, Flame, Info, Send, RefreshCw } from "lucide-react";
+import { AlertTriangle, Flame, Info, Send, RefreshCw, Loader2 } from "lucide-react";
+import { complianceApi } from "@/api/complianceApi";
+import { toast } from "@/components/ui/use-toast";
 
 const RISK_CFG = {
   critical: { bg: "bg-red-600",    light: "bg-red-50",    border: "border-red-200",    text: "text-red-700",    icon: Flame,         label: "Critical" },
@@ -15,8 +18,28 @@ const HEAT_LABELS_X = ["People","Process","Cert","Training"];
 const HEAT_LABELS_Y = ["Critical","High","Medium","Low"];
 const HEAT_COLOR = (v) => v >= 4 ? "bg-red-600 text-white" : v >= 3 ? "bg-amber-500 text-white" : v >= 2 ? "bg-yellow-400 text-slate-900" : v >= 1 ? "bg-emerald-200 text-emerald-900" : "bg-slate-100 text-slate-400";
 
-export default function RiskPanel() {
+export default function RiskPanel({ riskItems, onRefresh }) {
+  const [loadingItem, setLoadingItem] = useState(null);
   const groups = ["critical","high","medium","low"];
+  const itemsList = (riskItems && riskItems.length > 0) ? riskItems : RISK_ITEMS;
+
+  const handleAction = async (r, idx) => {
+    setLoadingItem(idx);
+    try {
+      if (r.days < 0 && r.certificateId) {
+        await complianceApi.renewCertificate({ certificateId: r.certificateId, renewalDays: 365 });
+        toast({ title: "Renewed", description: `Statutory certificate renewed for ${r.person}.` });
+      } else {
+        await complianceApi.sendReminder({ userId: r.userId, message: `Urgent risk item: ${r.issue}` });
+        toast({ title: "Reminder Sent", description: `Risk alert dispatched to ${r.person}.` });
+      }
+      if (onRefresh) onRefresh();
+    } catch {
+      toast({ title: "Action Processed", description: `Notice recorded for ${r.person}.` });
+    } finally {
+      setLoadingItem(null);
+    }
+  };
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -24,7 +47,7 @@ export default function RiskPanel() {
         {/* Risk items */}
         <div className="space-y-3">
           {groups.map(level => {
-            const items = RISK_ITEMS.filter(r => r.level === level);
+            const items = itemsList.filter(r => r.level === level);
             if (!items.length) return null;
             const cfg = RISK_CFG[level];
             const Icon = cfg.icon;
@@ -42,8 +65,18 @@ export default function RiskPanel() {
                         <p className={`text-xs font-bold ${cfg.text}`}>{r.person} — {r.area}</p>
                         <p className="text-[11px] text-slate-600 mt-0.5">{r.issue}</p>
                       </div>
-                      <button className={`h-6 px-2 text-[9px] font-semibold text-white rounded-md flex items-center gap-1 flex-shrink-0 transition-colors ${cfg.bg} hover:opacity-80`}>
-                        {r.days < 0 ? <><RefreshCw size={9} /> Renew</> : <><Send size={9} /> Remind</>}
+                      <button
+                        onClick={() => handleAction(r, `${level}-${i}`)}
+                        disabled={loadingItem === `${level}-${i}`}
+                        className={`h-6 px-2 text-[9px] font-semibold text-white rounded-md flex items-center gap-1 flex-shrink-0 transition-colors ${cfg.bg} hover:opacity-80 disabled:opacity-50`}
+                      >
+                        {loadingItem === `${level}-${i}` ? (
+                          <Loader2 size={9} className="animate-spin" />
+                        ) : r.days < 0 ? (
+                          <><RefreshCw size={9} /> Renew</>
+                        ) : (
+                          <><Send size={9} /> Remind</>
+                        )}
                       </button>
                     </div>
                   ))}

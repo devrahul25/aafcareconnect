@@ -106,8 +106,9 @@ export const AuthProvider = ({ children }) => {
           role = 'trainer';
         }
 
-        const mockPayload = { sub: 'mock-id', email, full_name: fullName, role };
+        const mockPayload = { sub: 'mock-id', email, full_name: fullName, role, org: '233bdbbc-413b-44f4-b6f4-72394de4e22a' };
         const userObj = mapPayloadToUser(mockPayload);
+        userObj.organization_id = '233bdbbc-413b-44f4-b6f4-72394de4e22a';
         
         try {
           const res = await apiClient.get('/auth/me');
@@ -351,7 +352,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       isLoadingAuth,
       // kept for backwards compat with AppLayout / TopBar
-      organisationId: user?.organization_id || user?.organisation_id || null,
+      organisationId: user?.organization_id || user?.organisation_id || '233bdbbc-413b-44f4-b6f4-72394de4e22a',
       organisation: null,
       authError: null,
       isLoadingPublicSettings: false,

@@ -1,7 +1,9 @@
 import { DEPT_COMPLIANCE } from "@/lib/complianceData";
 import { Users } from "lucide-react";
 
-export default function DeptCompliance() {
+export default function DeptCompliance({ depts }) {
+  const data = (depts && depts.length > 0) ? depts : DEPT_COMPLIANCE;
+
   return (
     <div className="card p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -9,7 +11,7 @@ export default function DeptCompliance() {
         <h3 className="text-sm font-bold text-slate-900">Workforce Compliance by Department</h3>
       </div>
       <div className="space-y-3">
-        {DEPT_COMPLIANCE.map(dept => {
+        {data.map(dept => {
           const color = dept.score >= 95 ? "bg-emerald-500" : dept.score >= 80 ? "bg-blue-500" : "bg-amber-500";
           return (
             <div key={dept.name}>

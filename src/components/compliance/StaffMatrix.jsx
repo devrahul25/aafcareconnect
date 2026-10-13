@@ -15,18 +15,20 @@ function ScorePill({ score }) {
   return <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color}`}>{score}%</span>;
 }
 
-export default function StaffMatrix({ onSelect }) {
+export default function StaffMatrix({ staffList, onSelect }) {
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
   const [sort, setSort] = useState("score_asc");
 
-  let data = STAFF_COMPLIANCE.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) &&
+  const sourceData = (staffList && staffList.length > 0) ? staffList : STAFF_COMPLIANCE;
+
+  let data = sourceData.filter(s =>
+    (s.name || '').toLowerCase().includes(search.toLowerCase()) &&
     (riskFilter === "all" || s.riskLevel === riskFilter)
   );
-  if (sort === "score_asc")  data = [...data].sort((a,b) => a.score - b.score);
-  if (sort === "score_desc") data = [...data].sort((a,b) => b.score - a.score);
-  if (sort === "name")       data = [...data].sort((a,b) => a.name.localeCompare(b.name));
+  if (sort === "score_asc")  data = [...data].sort((a,b) => (a.score || 0) - (b.score || 0));
+  if (sort === "score_desc") data = [...data].sort((a,b) => (b.score || 0) - (a.score || 0));
+  if (sort === "name")       data = [...data].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
 
   return (
     <div className="card overflow-hidden">

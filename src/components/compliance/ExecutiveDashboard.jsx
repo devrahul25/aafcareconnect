@@ -14,9 +14,11 @@ const FORECAST = [
 
 const COMBINED = [...COMPLIANCE_TREND, ...FORECAST.map(f => ({ ...f, forecast: f.score, score: undefined }))];
 
-export default function ExecutiveDashboard() {
-  const highRisk = STAFF_COMPLIANCE.filter(s => s.riskLevel === "high").length;
-  const fullyCompliant = STAFF_COMPLIANCE.filter(s => s.score >= 90).length;
+export default function ExecutiveDashboard({ kpis, staffList, orgName = "Shining Stars Fostering Agency" }) {
+  const staff = (staffList && staffList.length > 0) ? staffList : STAFF_COMPLIANCE;
+  const currentScore = kpis?.agencyScore ?? AGENCY_SCORE;
+  const highRisk = staff.filter(s => s.riskLevel === "high").length;
+  const fullyCompliant = staff.filter(s => s.score >= 90).length;
 
   const handleReport = () => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -24,16 +26,16 @@ export default function ExecutiveDashboard() {
     doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(18);
     doc.text("AAF CareConnect™ — Executive Compliance Report", 105, 22, { align:"center" });
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(148,163,184);
-    doc.text(`Generated ${new Date().toLocaleDateString("en-GB")}  ·  Shining Stars Fostering Agency`, 105, 35, { align:"center" });
+    doc.text(`Generated ${new Date().toLocaleDateString("en-GB")}  ·  ${orgName}`, 105, 35, { align:"center" });
     doc.setFillColor(255,255,255); doc.roundedRect(10, 58, 88, 45, 3,3,"F");
     doc.setTextColor(15,23,42); doc.setFont("helvetica","bold"); doc.setFontSize(28);
-    doc.text(`${AGENCY_SCORE}%`, 54, 78, { align:"center" });
+    doc.text(`${currentScore}%`, 54, 78, { align:"center" });
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(100,116,139);
     doc.text("Overall Compliance Score", 54, 86, { align:"center" });
     doc.text(`Up ${SCORE_TREND}% from last month`, 54, 94, { align:"center" });
     doc.setFillColor(255,255,255); doc.roundedRect(110, 58, 88, 45, 3,3,"F");
     doc.setTextColor(15,23,42); doc.setFont("helvetica","bold"); doc.setFontSize(28);
-    doc.text(`${fullyCompliant}/${STAFF_COMPLIANCE.length}`, 154, 78, { align:"center" });
+    doc.text(`${fullyCompliant}/${staff.length}`, 154, 78, { align:"center" });
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(100,116,139);
     doc.text("Staff Fully Compliant", 154, 86, { align:"center" });
     doc.text(`${highRisk} high-risk staff`, 154, 94, { align:"center" });
@@ -48,7 +50,7 @@ export default function ExecutiveDashboard() {
           <TrendingUp size={20} className="text-blue-400" />
           <div>
             <h3 className="font-heading font-bold text-white">Executive Compliance Dashboard</h3>
-            <p className="text-xs text-slate-400">Agency Director View · Shining Stars Fostering Agency</p>
+            <p className="text-xs text-slate-400">Agency Director View · {orgName}</p>
           </div>
         </div>
         <button onClick={handleReport} className="h-9 px-4 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center gap-2 transition-colors">
@@ -59,10 +61,10 @@ export default function ExecutiveDashboard() {
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: Shield,        bg: "bg-emerald-600", label: "Compliance Score",    value: `${AGENCY_SCORE}%`,  sub: `+${SCORE_TREND}% this month`  },
-          { icon: Users,         bg: "bg-blue-600",    label: "Fully Compliant",     value: fullyCompliant,      sub: `of ${STAFF_COMPLIANCE.length} staff` },
+          { icon: Shield,        bg: "bg-emerald-600", label: "Compliance Score",    value: `${currentScore}%`,  sub: `+${SCORE_TREND}% this month`  },
+          { icon: Users,         bg: "bg-blue-600",    label: "Fully Compliant",     value: fullyCompliant,      sub: `of ${staff.length} staff` },
           { icon: AlertTriangle, bg: "bg-red-600",     label: "High Risk Staff",     value: highRisk,            sub: "Require immediate action"      },
-          { icon: Award,         bg: "bg-indigo-600",  label: "Ofsted Readiness",    value: "92%",               sub: "Inspection ready"               },
+          { icon: Award,         bg: "bg-indigo-600",  label: "Ofsted Readiness",    value: `${Math.min(100, currentScore + 2)}%`, sub: "Inspection ready" },
         ].map(k => {
           const Icon = k.icon;
           return (

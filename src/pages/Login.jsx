@@ -52,7 +52,8 @@ export default function Login() {
         login(mockToken, "mock-refresh-token", {
           email,
           full_name: fullName,
-          role: mockRole
+          role: mockRole,
+          organization_id: "233bdbbc-413b-44f4-b6f4-72394de4e22a"
         });
         navigate("/", { replace: true });
         return;

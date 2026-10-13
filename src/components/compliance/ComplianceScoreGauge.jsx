@@ -51,24 +51,26 @@ function GaugeArc({ score }) {
   );
 }
 
-export default function ComplianceScoreGauge() {
-  const cfg = getColor(AGENCY_SCORE);
-  const isUp = SCORE_TREND > 0;
+export default function ComplianceScoreGauge({ score, trend, history }) {
+  const currentScore = score !== undefined ? score : AGENCY_SCORE;
+  const currentTrend = trend !== undefined ? trend : SCORE_TREND;
+  const currentHistory = history || SCORE_HISTORY;
+  const isUp = currentTrend >= 0;
 
   return (
     <div className="card p-6 flex flex-col items-center">
       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Agency Compliance Score</p>
-      <GaugeArc score={AGENCY_SCORE} />
+      <GaugeArc score={currentScore} />
 
       {/* Trend */}
       <div className={`flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-bold ${isUp ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
         {isUp ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-        {isUp ? "+" : ""}{SCORE_TREND}% vs last month
+        {isUp ? "+" : ""}{currentTrend}% vs last month
       </div>
 
       {/* Mini history */}
       <div className="grid grid-cols-4 gap-2 mt-5 w-full">
-        {SCORE_HISTORY.map(h => (
+        {currentHistory.map(h => (
           <div key={h.period} className="text-center">
             <p className={`text-sm font-bold ${h.score >= 90 ? "text-emerald-600" : h.score >= 70 ? "text-amber-600" : "text-red-600"}`}>{h.score}%</p>
             <p className="text-[9px] text-slate-400">{h.period}</p>

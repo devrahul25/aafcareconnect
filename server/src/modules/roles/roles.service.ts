@@ -1,7 +1,7 @@
 import { RolesRepository } from './roles.repository';
 
 export class RolesService {
-  static async getRoles(organization_id: string) {
+  static async getRoles(organization_id?: string) {
     const roles = await RolesRepository.findAllByOrg(organization_id);
     return roles.map(role => ({
       id: role.id,
