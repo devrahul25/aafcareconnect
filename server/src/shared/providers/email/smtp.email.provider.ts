@@ -17,19 +17,31 @@ export class SmtpEmailProvider implements IEmailProvider {
 
       let socket: any;
       let state = 'INIT';
-      let authStarted = false;
+      let lineBuffer = '';
+      let isResolved = false;
 
-      function handleData(data: Buffer) {
-        const msg = data.toString();
+      const cleanup = () => {
+        if (socket && !socket.destroyed) {
+          socket.destroy();
+        }
+      };
 
-        if (state === 'INIT' && msg.startsWith('220')) {
-          state = isPort465 ? 'EHLO' : 'STARTTLS_EHLO';
-          socket.write('EHLO aafcareconnect.com\r\n');
-        } else if (state === 'STARTTLS_EHLO' && (msg.startsWith('250-') || msg.startsWith('250 '))) {
+      const handleLine = (line: string) => {
+        if (!line) return;
+        logger.debug(`[SMTP ${state}] S: ${line}`);
+
+        if (state === 'INIT' && line.startsWith('220')) {
+          if (isPort465) {
+            state = 'EHLO';
+            socket.write('EHLO aafcareconnect.com\r\n');
+          } else {
+            state = 'STARTTLS_EHLO';
+            socket.write('EHLO aafcareconnect.com\r\n');
+          }
+        } else if (state === 'STARTTLS_EHLO' && line.startsWith('250 ')) {
           state = 'STARTTLS_CMD';
           socket.write('STARTTLS\r\n');
-        } else if (state === 'STARTTLS_CMD' && msg.startsWith('220')) {
-          // Upgrade plain socket to TLS on Port 587
+        } else if (state === 'STARTTLS_CMD' && line.startsWith('220')) {
           state = 'EHLO';
           const tlsSocket = tls.connect({
             socket,
@@ -37,31 +49,34 @@ export class SmtpEmailProvider implements IEmailProvider {
             servername: host
           });
           socket = tlsSocket;
-          tlsSocket.on('data', handleData);
-          tlsSocket.on('error', (err) => reject(err));
+          tlsSocket.on('data', onData);
+          tlsSocket.on('error', (err: any) => {
+            if (!isResolved) {
+              isResolved = true;
+              cleanup();
+              reject(err);
+            }
+          });
           tlsSocket.write('EHLO aafcareconnect.com\r\n');
-        } else if (state === 'EHLO' && (msg.startsWith('250-') || msg.startsWith('250 '))) {
-          if (!authStarted) {
-            authStarted = true;
-            state = 'AUTH_LOGIN';
-            socket.write('AUTH LOGIN\r\n');
-          }
-        } else if (state === 'AUTH_LOGIN' && (msg.startsWith('334 VXNlcm5hbWU6') || msg.toLowerCase().includes('username'))) {
+        } else if (state === 'EHLO' && line.startsWith('250 ')) {
           state = 'AUTH_USER';
-          socket.write(Buffer.from(user).toString('base64') + '\r\n');
-        } else if (state === 'AUTH_USER' && (msg.startsWith('334 UGFzc3dvcmQ6') || msg.toLowerCase().includes('password'))) {
+          socket.write('AUTH LOGIN\r\n');
+        } else if (state === 'AUTH_USER' && line.startsWith('334')) {
           state = 'AUTH_PASS';
+          socket.write(Buffer.from(user).toString('base64') + '\r\n');
+        } else if (state === 'AUTH_PASS' && line.startsWith('334')) {
+          state = 'AUTH_CHECK';
           socket.write(Buffer.from(pass).toString('base64') + '\r\n');
-        } else if (state === 'AUTH_PASS' && msg.startsWith('235')) {
+        } else if (state === 'AUTH_CHECK' && line.startsWith('235')) {
           state = 'MAIL_FROM';
           socket.write(`MAIL FROM:<${fromEmail}>\r\n`);
-        } else if (state === 'MAIL_FROM' && msg.startsWith('250')) {
+        } else if (state === 'MAIL_FROM' && line.startsWith('250')) {
           state = 'RCPT_TO';
           socket.write(`RCPT TO:<${to}>\r\n`);
-        } else if (state === 'RCPT_TO' && msg.startsWith('250')) {
+        } else if (state === 'RCPT_TO' && line.startsWith('250')) {
           state = 'DATA';
           socket.write('DATA\r\n');
-        } else if (state === 'DATA' && msg.startsWith('354')) {
+        } else if (state === 'DATA' && line.startsWith('354')) {
           state = 'BODY';
           const emailContent = [
             `From: "${fromName}" <${fromEmail}>`,
@@ -75,17 +90,33 @@ export class SmtpEmailProvider implements IEmailProvider {
             '.'
           ].join('\r\n');
           socket.write(emailContent + '\r\n');
-        } else if (state === 'BODY' && msg.startsWith('250')) {
+        } else if (state === 'BODY' && line.startsWith('250')) {
+          state = 'DONE';
           logger.info(`Email sent successfully to ${to} via SMTP (Port ${port})`);
           socket.write('QUIT\r\n');
           socket.end();
-          resolve();
-        } else if (msg.startsWith('5')) {
-          logger.error(`SMTP Error from server: ${msg}`);
-          socket.end();
-          reject(new Error(msg.trim()));
+          if (!isResolved) {
+            isResolved = true;
+            resolve();
+          }
+        } else if (line.startsWith('5')) {
+          logger.error(`SMTP Error from server in state ${state}: ${line}`);
+          cleanup();
+          if (!isResolved) {
+            isResolved = true;
+            reject(new Error(line.trim()));
+          }
         }
-      }
+      };
+
+      const onData = (chunk: Buffer) => {
+        lineBuffer += chunk.toString();
+        const lines = lineBuffer.split('\r\n');
+        lineBuffer = lines.pop() || '';
+        for (const line of lines) {
+          handleLine(line);
+        }
+      };
 
       if (isPort465) {
         socket = tls.connect(port, host, { rejectUnauthorized: false, servername: host }, () => {
@@ -97,15 +128,22 @@ export class SmtpEmailProvider implements IEmailProvider {
         });
       }
 
-      socket.on('data', handleData);
+      socket.on('data', onData);
       socket.on('error', (err: any) => {
         logger.error('SMTP Socket error:', err);
-        reject(err);
+        if (!isResolved) {
+          isResolved = true;
+          cleanup();
+          reject(err);
+        }
       });
 
       socket.setTimeout(15000, () => {
-        socket.destroy();
-        reject(new Error('SMTP Connection Timeout'));
+        cleanup();
+        if (!isResolved) {
+          isResolved = true;
+          reject(new Error('SMTP Connection Timeout'));
+        }
       });
     });
   }

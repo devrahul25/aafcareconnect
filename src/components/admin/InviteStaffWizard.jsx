@@ -39,7 +39,13 @@ export default function InviteStaffWizard({ onClose, onSuccess }) {
       try {
         setLoadingRoles(true);
         const res = await apiClient.get('/roles');
-        const availableRoles = (res.data.data || []).filter(r => r.name !== 'super_admin' && r.name !== 'learner' && r.name !== 'org_admin');
+        const seenNames = new Set();
+        const availableRoles = (res.data.data || []).filter(r => {
+          if (r.name === 'super_admin' || r.name === 'learner') return false;
+          if (seenNames.has(r.name)) return false;
+          seenNames.add(r.name);
+          return true;
+        });
         setRoles(availableRoles);
       } catch (err) {
         toast.error('Failed to load roles');
@@ -69,8 +75,8 @@ export default function InviteStaffWizard({ onClose, onSuccess }) {
   const handleNext = () => {
     if (currentStep === 0) {
       if (!formData.full_name || !formData.email) return toast.error("Name and Email are required");
-      if (formData.phone && formData.phone.replace(/\D/g, '').length < 11) {
-        return toast.error("Phone number must contain at least 11 digits");
+      if (formData.phone && formData.phone.replace(/\D/g, '').length < 10) {
+        return toast.error("Phone number must contain at least 10 digits");
       }
     }
     if (currentStep === 1) {

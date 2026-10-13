@@ -15,14 +15,15 @@ export default function Staff({ orgId }) {
   const [activeTab, setActiveTab] = useState('staff');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const fetchStaff = async () => {
       try {
         setLoading(true);
         const params = { role: 'org_admin,manager,trainer' };
-        if (orgId) {
-          params.organization_id = orgId;
+        const effectiveOrgId = orgId || user?.organization_id || user?.organization?.id;
+        if (effectiveOrgId) {
+          params.organization_id = effectiveOrgId;
         }
         const res = await apiClient.get('/users', { params });
         setStaff(res.data.data || []);

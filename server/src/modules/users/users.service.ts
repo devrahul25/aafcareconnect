@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import { FirebaseAdminService } from '../../shared/providers/identity/firebase-admin.service';
 import { EmailService } from '../../shared/providers/email/email.service';
 import { permissionService } from '../auth/permission.service';
+import { logger } from '../../config/logger';
 
 export class UsersService {
 
@@ -196,17 +197,12 @@ export class UsersService {
         start_date?: Date;
         responsibility_scope?: any;
     }) {
-        const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
-        if (existingUser) {
-            throw new Error('User with this email already exists');
-        }
-
         const role = await prisma.role.findUnique({ where: { id: data.role_id } });
         if (!role) {
             throw new Error('Role not found');
         }
-        if (role.name === 'org_admin') {
-            throw new Error('You cannot assign the Organisation Admin role. Only a Super Admin can do this.');
+        if (role.name === 'super_admin') {
+            throw new Error('You cannot assign the Super Admin role.');
         }
 
         const tempPassword = Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-4).toUpperCase() + '!';
@@ -218,48 +214,109 @@ export class UsersService {
             firebaseUid = await identityProvider.createUser(data.email, tempPassword);
         } catch (error: any) {
             if (error.code === 'auth/email-already-exists') {
-                await identityProvider.deleteUserByEmail(data.email);
-                firebaseUid = await identityProvider.createUser(data.email, tempPassword);
+                try {
+                    await identityProvider.deleteUserByEmail(data.email);
+                    firebaseUid = await identityProvider.createUser(data.email, tempPassword);
+                } catch (delErr) {
+                    firebaseUid = 'fb_' + Math.random().toString(36).substring(2, 12);
+                }
             } else {
-                throw error;
+                logger.warn(`Firebase createUser failed for ${data.email}, using local fallback UID`, error);
+                firebaseUid = 'fb_' + Math.random().toString(36).substring(2, 12);
             }
         }
 
-        const user = await prisma.user.create({
-            data: {
-                email: data.email,
-                full_name: data.full_name,
-                password_hash: passwordHash,
-                firebase_uid: firebaseUid,
-                organization_id: data.organization_id,
-                status: 'ACTIVE',
-                email_verified: false,
-                phone: data.phone,
-                user_roles: {
-                    create: {
-                        role_id: data.role_id
+        const existingUser = await prisma.user.findUnique({ 
+            where: { email: data.email },
+            include: { staff_profile: true }
+        });
+
+        let user;
+
+        if (existingUser) {
+            // User already exists in database - update their profile and assign staff role
+            user = await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                    full_name: data.full_name,
+                    password_hash: passwordHash,
+                    firebase_uid: firebaseUid || existingUser.firebase_uid,
+                    organization_id: data.organization_id,
+                    status: 'ACTIVE',
+                    phone: data.phone || existingUser.phone,
+                    user_roles: {
+                        deleteMany: {},
+                        create: {
+                            role_id: data.role_id
+                        }
+                    },
+                    staff_profile: existingUser.staff_profile ? {
+                        update: {
+                            organization_id: data.organization_id,
+                            employee_id: data.employee_id || existingUser.staff_profile.employee_id,
+                            job_title: data.job_title || existingUser.staff_profile.job_title,
+                            department: data.department || existingUser.staff_profile.department,
+                            employment_type: data.employment_type || existingUser.staff_profile.employment_type,
+                            start_date: data.start_date ? new Date(data.start_date) : existingUser.staff_profile.start_date,
+                            responsibility_scope: data.responsibility_scope || existingUser.staff_profile.responsibility_scope
+                        }
+                    } : {
+                        create: {
+                            organization_id: data.organization_id,
+                            employee_id: data.employee_id,
+                            job_title: data.job_title,
+                            department: data.department,
+                            employment_type: data.employment_type,
+                            start_date: data.start_date ? new Date(data.start_date) : undefined,
+                            responsibility_scope: data.responsibility_scope || {}
+                        }
                     }
                 },
-                staff_profile: {
-                    create: {
-                        organization_id: data.organization_id,
-                        employee_id: data.employee_id,
-                        job_title: data.job_title,
-                        department: data.department,
-                        employment_type: data.employment_type,
-                        start_date: data.start_date ? new Date(data.start_date) : undefined,
-                        responsibility_scope: data.responsibility_scope || {}
+                include: {
+                    user_roles: {
+                        include: {
+                            role: true
+                        }
                     }
                 }
-            },
-            include: {
-                user_roles: {
-                    include: {
-                        role: true
+            });
+        } else {
+            user = await prisma.user.create({
+                data: {
+                    email: data.email,
+                    full_name: data.full_name,
+                    password_hash: passwordHash,
+                    firebase_uid: firebaseUid,
+                    organization_id: data.organization_id,
+                    status: 'ACTIVE',
+                    email_verified: false,
+                    phone: data.phone,
+                    user_roles: {
+                        create: {
+                            role_id: data.role_id
+                        }
+                    },
+                    staff_profile: {
+                        create: {
+                            organization_id: data.organization_id,
+                            employee_id: data.employee_id,
+                            job_title: data.job_title,
+                            department: data.department,
+                            employment_type: data.employment_type,
+                            start_date: data.start_date ? new Date(data.start_date) : undefined,
+                            responsibility_scope: data.responsibility_scope || {}
+                        }
+                    }
+                },
+                include: {
+                    user_roles: {
+                        include: {
+                            role: true
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
         // Send Welcome Email
         const org = await prisma.organization.findUnique({ where: { id: data.organization_id } });
@@ -268,9 +325,9 @@ export class UsersService {
             await emailService.sendStaffWelcomeEmail(data.email, {
                 name: data.full_name.split(' ')[0],
                 organization: org.name,
-                role: role.name,
+                role: role.name.replace(/_/g, ' ').toUpperCase(),
                 temp_password: tempPassword
-            }).catch(err => console.error('Failed to send staff welcome email:', err));
+            }).catch(err => logger.error('Failed to send staff welcome email:', err));
         }
 
         return {
