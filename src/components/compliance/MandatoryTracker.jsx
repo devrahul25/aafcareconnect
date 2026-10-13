@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Send, BookOpen, CheckCircle2, Loader2 } from "lucide-react";
-import { MANDATORY_TRAINING } from "@/lib/complianceData";
 import { complianceApi } from "@/api/complianceApi";
 import { toast } from "@/components/ui/use-toast";
 
 export default function MandatoryTracker({ trainingData, onRefresh }) {
   const [loadingArea, setLoadingArea] = useState(null);
 
-  const data = (trainingData && trainingData.length > 0) ? trainingData : MANDATORY_TRAINING;
+  const data = trainingData || [];
 
   const handleAssignArea = async (t) => {
     setLoadingArea(`assign-${t.area}`);
@@ -88,7 +87,14 @@ export default function MandatoryTracker({ trainingData, onRefresh }) {
           </button>
         </div>
 
-        <div className="divide-y divide-slate-50">
+        {data.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">
+            <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-400" />
+            <p className="text-sm font-medium text-slate-600">No mandatory courses configured</p>
+            <p className="text-xs text-slate-400 mt-1">Configure mandatory courses in Course Builder to track staff completion.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-50">
           {data.map(t => {
             const completedPct = Math.round((t.completed / Math.max(1, t.required)) * 100);
             const overduePct   = Math.round((t.overdue / Math.max(1, t.required)) * 100);
@@ -143,7 +149,8 @@ export default function MandatoryTracker({ trainingData, onRefresh }) {
             );
           })}
         </div>
-      </div>
+      )}
     </div>
-  );
+  </div>
+);
 }

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Search, ChevronRight, Download } from "lucide-react";
-import { STAFF_COMPLIANCE } from "@/lib/complianceData";
 
 const RISK_CFG = {
   low:    { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "Low Risk"    },
@@ -20,7 +19,7 @@ export default function StaffMatrix({ staffList, onSelect }) {
   const [riskFilter, setRiskFilter] = useState("all");
   const [sort, setSort] = useState("score_asc");
 
-  const sourceData = (staffList && staffList.length > 0) ? staffList : STAFF_COMPLIANCE;
+  const sourceData = staffList || [];
 
   let data = sourceData.filter(s =>
     (s.name || '').toLowerCase().includes(search.toLowerCase()) &&

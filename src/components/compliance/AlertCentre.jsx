@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { BellRing, CheckCircle2, X } from "lucide-react";
-import { ALERTS } from "@/lib/complianceData";
 
 const ALERT_CFG = {
   critical: { bg: "bg-red-50",    border: "border-l-red-500",    dot: "bg-red-500",   text: "text-red-700"   },
@@ -9,11 +8,11 @@ const ALERT_CFG = {
 };
 
 export default function AlertCentre({ alertsList }) {
-  const [alerts, setAlerts] = useState(alertsList && alertsList.length > 0 ? alertsList : ALERTS);
+  const [alerts, setAlerts] = useState(alertsList || []);
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
-    if (alertsList && alertsList.length > 0) setAlerts(alertsList);
+    setAlerts(alertsList || []);
   }, [alertsList]);
 
   const dismiss = (id) => setAlerts(a => a.filter(x => x.id !== id));

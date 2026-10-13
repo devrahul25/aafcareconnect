@@ -15,11 +15,7 @@ export default function StaffProfile({ staff, onClose, onRefresh }) {
   if (!staff) return null;
   const r = RISK_CFG[staff.riskLevel] || RISK_CFG.low;
 
-  const certs = (staff.certificates && staff.certificates.length > 0) ? staff.certificates : [
-    { title: "Safeguarding Level 2",   status: "valid", days: 180 },
-    { title: "First Aid",              status: "valid", days: 300 },
-    { title: "Therapeutic Parenting",  status: "valid", days: 220 },
-  ];
+  const certs = staff.certificates || [];
 
   const scoreColor = staff.score >= 90 ? "text-emerald-600" : staff.score >= 75 ? "text-amber-600" : "text-red-600";
   const scoreRing  = staff.score >= 90 ? "stroke-emerald-500" : staff.score >= 75 ? "stroke-amber-500" : "stroke-red-500";
@@ -130,10 +126,10 @@ export default function StaffProfile({ staff, onClose, onRefresh }) {
                 <p className={`text-3xl font-heading font-bold ${scoreColor}`}>{staff.score}%</p>
                 <p className="text-sm text-slate-600 font-semibold">Compliance Score</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
-                  <span>📜 {staff.certs || certs.length} certificates</span>
-                  <span>⏰ {staff.cpdHours || 12}h CPD</span>
-                  <span>✅ {staff.mandatoryPct || 100}% mandatory</span>
-                  <span>🔔 {staff.renewalsDue || 0} renewals due</span>
+                  <span>📜 {staff.certs ?? certs.length} certificates</span>
+                  <span>⏰ {staff.cpdHours ?? 0}h CPD</span>
+                  <span>✅ {staff.mandatoryPct ?? 100}% mandatory</span>
+                  <span>🔔 {staff.renewalsDue ?? 0} renewals due</span>
                 </div>
               </div>
             </div>
@@ -144,24 +140,28 @@ export default function StaffProfile({ staff, onClose, onRefresh }) {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Certificates ({certs.length})</h3>
             </div>
-            {certs.map((c, i) => {
-              const isExpired = c.status === "expired" || (c.days !== undefined && c.days <= 0);
-              const isExpiring = c.status === "expiring_soon" || (c.days !== undefined && c.days > 0 && c.days <= 90);
-              return (
-                <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${isExpired ? "bg-red-50 border-red-200" : isExpiring ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
-                  {isExpired ? <Clock size={14} className="text-red-500 flex-shrink-0" />
-                    : isExpiring ? <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
-                    : <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-800 truncate">{c.title}</p>
-                    {c.provider && <p className="text-[10px] text-slate-400">{c.provider}</p>}
+            {certs.length === 0 ? (
+              <p className="text-xs text-slate-400 py-4 text-center">No certificates recorded for this staff member.</p>
+            ) : (
+              certs.map((c, i) => {
+                const isExpired = c.status === "expired" || (c.days !== undefined && c.days <= 0);
+                const isExpiring = c.status === "expiring_soon" || (c.days !== undefined && c.days > 0 && c.days <= 90);
+                return (
+                  <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${isExpired ? "bg-red-50 border-red-200" : isExpiring ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
+                    {isExpired ? <Clock size={14} className="text-red-500 flex-shrink-0" />
+                      : isExpiring ? <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
+                      : <CheckCircle2 size={14} className="text-emerald-500 flex-shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{c.title}</p>
+                      {c.provider && <p className="text-[10px] text-slate-400">{c.provider}</p>}
+                    </div>
+                    <span className={`text-[10px] font-bold ${isExpired ? "text-red-600" : isExpiring ? "text-amber-600" : "text-emerald-600"}`}>
+                      {isExpired ? `Expired ${Math.abs(c.days)}d ago` : isExpiring ? `${c.days}d left` : `${c.days}d`}
+                    </span>
                   </div>
-                  <span className={`text-[10px] font-bold ${isExpired ? "text-red-600" : isExpiring ? "text-amber-600" : "text-emerald-600"}`}>
-                    {isExpired ? `Expired ${Math.abs(c.days)}d ago` : isExpiring ? `${c.days}d left` : `${c.days}d`}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* Recommendations & Quick Actions */}

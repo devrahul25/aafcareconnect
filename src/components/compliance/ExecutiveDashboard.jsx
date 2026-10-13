@@ -1,24 +1,17 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { TrendingUp, Download, Shield, Users, Award, AlertTriangle } from "lucide-react";
-import { COMPLIANCE_TREND, DEPT_COMPLIANCE, AGENCY_SCORE, SCORE_TREND, STAFF_COMPLIANCE } from "@/lib/complianceData";
 import { jsPDF } from "jspdf";
 
-const FORECAST = [
-  { month: "Jul", score: 92, target: 93 },
-  { month: "Aug", score: 93, target: 93 },
-  { month: "Sep", score: 91, target: 93 },
-  { month: "Oct", score: 94, target: 93 },
-  { month: "Nov", score: 95, target: 93 },
-  { month: "Dec", score: 95, target: 93 },
-];
-
-const COMBINED = [...COMPLIANCE_TREND, ...FORECAST.map(f => ({ ...f, forecast: f.score, score: undefined }))];
-
 export default function ExecutiveDashboard({ kpis, staffList, orgName = "Shining Stars Fostering Agency" }) {
-  const staff = (staffList && staffList.length > 0) ? staffList : STAFF_COMPLIANCE;
-  const currentScore = kpis?.agencyScore ?? AGENCY_SCORE;
+  const staff = staffList || [];
+  const currentScore = kpis?.agencyScore ?? 100;
   const highRisk = staff.filter(s => s.riskLevel === "high").length;
   const fullyCompliant = staff.filter(s => s.score >= 90).length;
+  const deptData = kpis?.deptCompliance && kpis.deptCompliance.length > 0 ? kpis.deptCompliance : [];
+
+  const trendData = [
+    { month: "Current", score: currentScore, target: 95 }
+  ];
 
   const handleReport = () => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
@@ -32,7 +25,7 @@ export default function ExecutiveDashboard({ kpis, staffList, orgName = "Shining
     doc.text(`${currentScore}%`, 54, 78, { align:"center" });
     doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(100,116,139);
     doc.text("Overall Compliance Score", 54, 86, { align:"center" });
-    doc.text(`Up ${SCORE_TREND}% from last month`, 54, 94, { align:"center" });
+    doc.text("Compliant standing", 54, 94, { align:"center" });
     doc.setFillColor(255,255,255); doc.roundedRect(110, 58, 88, 45, 3,3,"F");
     doc.setTextColor(15,23,42); doc.setFont("helvetica","bold"); doc.setFontSize(28);
     doc.text(`${fullyCompliant}/${staff.length}`, 154, 78, { align:"center" });
@@ -61,10 +54,10 @@ export default function ExecutiveDashboard({ kpis, staffList, orgName = "Shining
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: Shield,        bg: "bg-emerald-600", label: "Compliance Score",    value: `${currentScore}%`,  sub: `+${SCORE_TREND}% this month`  },
+          { icon: Shield,        bg: "bg-emerald-600", label: "Compliance Score",    value: `${currentScore}%`,  sub: "Current standing" },
           { icon: Users,         bg: "bg-blue-600",    label: "Fully Compliant",     value: fullyCompliant,      sub: `of ${staff.length} staff` },
-          { icon: AlertTriangle, bg: "bg-red-600",     label: "High Risk Staff",     value: highRisk,            sub: "Require immediate action"      },
-          { icon: Award,         bg: "bg-indigo-600",  label: "Ofsted Readiness",    value: `${Math.min(100, currentScore + 2)}%`, sub: "Inspection ready" },
+          { icon: AlertTriangle, bg: "bg-red-600",     label: "High Risk Staff",     value: highRisk,            sub: highRisk === 0 ? "Zero high risk staff" : "Require immediate action" },
+          { icon: Award,         bg: "bg-indigo-600",  label: "Ofsted Readiness",    value: `${Math.min(100, currentScore)}%`, sub: "Inspection ready" },
         ].map(k => {
           const Icon = k.icon;
           return (
@@ -82,19 +75,18 @@ export default function ExecutiveDashboard({ kpis, staffList, orgName = "Shining
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Trend + forecast */}
+        {/* Trend */}
         <div className="card p-5">
-          <h3 className="text-sm font-bold text-slate-900 mb-1">Compliance Trend & Forecast</h3>
-          <p className="text-xs text-slate-400 mb-4">6-month actual + 6-month projection vs 93% target</p>
+          <h3 className="text-sm font-bold text-slate-900 mb-1">Compliance Trend & Target</h3>
+          <p className="text-xs text-slate-400 mb-4">Current score vs 95% target</p>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={COMBINED}>
+            <LineChart data={trendData}>
               <CartesianGrid stroke="#f1f5f9" strokeDasharray="4 2" />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis domain={[75, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }} />
-              <Line dataKey="score"    name="Actual"    stroke="#2563eb" strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
-              <Line dataKey="forecast" name="Forecast"  stroke="#2563eb" strokeWidth={2} strokeDasharray="6 3" dot={false} connectNulls />
-              <Line dataKey="target"   name="Target"    stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+              <Line dataKey="score"    name="Score"    stroke="#2563eb" strokeWidth={2.5} dot={{ r: 4 }} />
+              <Line dataKey="target"   name="Target"   stroke="#10b981" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -103,18 +95,24 @@ export default function ExecutiveDashboard({ kpis, staffList, orgName = "Shining
         <div className="card p-5">
           <h3 className="text-sm font-bold text-slate-900 mb-1">Compliance by Department</h3>
           <p className="text-xs text-slate-400 mb-4">Current scores across workforce groups</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={DEPT_COMPLIANCE} layout="vertical" barSize={16}>
-              <XAxis type="number" domain={[0,100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} width={110} />
-              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={v => [`${v}%`]} />
-              <Bar dataKey="score" name="Compliance %" radius={[0,4,4,0]}>
-                {DEPT_COMPLIANCE.map((d, i) => (
-                  <rect key={i} fill={d.score >= 95 ? "#10b981" : d.score >= 85 ? "#3b82f6" : "#f59e0b"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {deptData.length === 0 ? (
+            <div className="h-[200px] flex items-center justify-center text-xs text-slate-400">
+              No department records available
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={deptData} layout="vertical" barSize={16}>
+                <XAxis type="number" domain={[0,100]} tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} width={110} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={v => [`${v}%`]} />
+                <Bar dataKey="score" name="Compliance %" radius={[0,4,4,0]}>
+                  {deptData.map((d, i) => (
+                    <rect key={i} fill={d.score >= 95 ? "#10b981" : d.score >= 85 ? "#3b82f6" : "#f59e0b"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -132,7 +130,13 @@ export default function ExecutiveDashboard({ kpis, staffList, orgName = "Shining
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {[...STAFF_COMPLIANCE].sort((a,b) => a.score - b.score).map(s => (
+            {staff.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-xs">
+                  No staff members registered in this organisation.
+                </td>
+              </tr>
+            ) : [...staff].sort((a,b) => (a.score || 0) - (b.score || 0)).map(s => (
               <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">

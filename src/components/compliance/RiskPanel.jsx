@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { RISK_ITEMS } from "@/lib/complianceData";
 import { AlertTriangle, Flame, Info, Send, RefreshCw, Loader2 } from "lucide-react";
 import { complianceApi } from "@/api/complianceApi";
 import { toast } from "@/components/ui/use-toast";
@@ -21,7 +20,7 @@ const HEAT_COLOR = (v) => v >= 4 ? "bg-red-600 text-white" : v >= 3 ? "bg-amber-
 export default function RiskPanel({ riskItems, onRefresh }) {
   const [loadingItem, setLoadingItem] = useState(null);
   const groups = ["critical","high","medium","low"];
-  const itemsList = (riskItems && riskItems.length > 0) ? riskItems : RISK_ITEMS;
+  const itemsList = riskItems || [];
 
   const handleAction = async (r, idx) => {
     setLoadingItem(idx);

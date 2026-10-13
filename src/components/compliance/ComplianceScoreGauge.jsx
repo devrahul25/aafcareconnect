@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { AGENCY_SCORE, SCORE_TREND, SCORE_HISTORY } from "@/lib/complianceData";
 
 function getColor(score) {
   if (score >= 90) return { stroke: "#10b981", text: "text-emerald-600", label: "Excellent", bg: "bg-emerald-50", border: "border-emerald-200" };
@@ -52,9 +51,11 @@ function GaugeArc({ score }) {
 }
 
 export default function ComplianceScoreGauge({ score, trend, history }) {
-  const currentScore = score !== undefined ? score : AGENCY_SCORE;
-  const currentTrend = trend !== undefined ? trend : SCORE_TREND;
-  const currentHistory = history || SCORE_HISTORY;
+  const currentScore = score !== undefined ? score : 100;
+  const currentTrend = trend !== undefined ? trend : 0;
+  const currentHistory = history || [
+    { period: "Today", score: currentScore }
+  ];
   const isUp = currentTrend >= 0;
 
   return (

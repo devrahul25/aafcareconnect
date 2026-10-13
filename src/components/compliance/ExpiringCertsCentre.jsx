@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { Send, RefreshCw, Download, CheckCircle2, Loader2 } from "lucide-react";
-import { EXPIRING_CERTS, EXPIRED_CERTS, daysUntil } from "@/lib/complianceData";
 import { complianceApi } from "@/api/complianceApi";
 import { toast } from "@/components/ui/use-toast";
+
+function daysUntil(expiry) {
+  if (!expiry) return 0;
+  return Math.ceil((new Date(expiry) - new Date()) / (1000 * 60 * 60 * 24));
+}
 
 function fmt(val) {
   if (!val) return "";
@@ -26,8 +30,8 @@ export default function ExpiringCertsCentre({ certsData, onRefresh }) {
   const [loadingAction, setLoadingAction] = useState(null);
   const [tab, setTab] = useState("expiring");
 
-  const expiringList = (certsData?.expiring && certsData.expiring.length > 0) ? certsData.expiring : EXPIRING_CERTS;
-  const expiredList = (certsData?.expired && certsData.expired.length > 0) ? certsData.expired : EXPIRED_CERTS;
+  const expiringList = certsData?.expiring || [];
+  const expiredList = certsData?.expired || [];
   const certs = tab === "expiring" ? expiringList : expiredList;
 
   const count30 = expiringList.filter(c => (c.daysRemaining !== undefined ? c.daysRemaining : daysUntil(c.expiry)) <= 30).length;

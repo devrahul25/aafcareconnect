@@ -76,17 +76,20 @@ export class ComplianceRepository {
                 : (userCerts.length > 0 ? Math.min(100, Math.round((validCerts / userCerts.length) * 100)) : 100);
 
             // Dynamic score calculation
-            const totalRequirements = Math.max(1, userCerts.length + (userEnrolments.length || 2));
-            const passedRequirements = validCerts + completedEnrolments;
-            let score = Math.round((passedRequirements / totalRequirements) * 100);
-            
-            // Penalize expired certificates heavily
-            if (userExpired > 0) {
-                score = Math.max(25, score - (userExpired * 25));
+            let score = 100;
+            const totalRequirements = userCerts.length + userEnrolments.length;
+            if (totalRequirements > 0) {
+                const passedRequirements = validCerts + completedEnrolments;
+                score = Math.round((passedRequirements / totalRequirements) * 100);
+                if (userExpired > 0) {
+                    score = Math.max(25, score - (userExpired * 25));
+                }
+            } else {
+                score = 100;
             }
-            score = Math.min(100, Math.max(15, score));
+            score = Math.min(100, Math.max(0, score));
 
-            const riskLevel = (userExpired > 0 || score < 70) ? 'high' : (userExpiring > 0 || score < 85 ? 'medium' : 'low');
+            const riskLevel = userExpired > 0 ? 'high' : (userExpiring > 0 || score < 80 ? 'medium' : 'low');
 
             return {
                 id: user.id,
@@ -107,7 +110,7 @@ export class ComplianceRepository {
         // Overall Agency Score
         const agencyScore = staffMetrics.length > 0
             ? Math.round(staffMetrics.reduce((sum, s) => sum + s.score, 0) / staffMetrics.length)
-            : 92;
+            : 100;
 
         // Department breakdown
         const depts: Record<string, { name: string; staff: number; totalScore: number; color: string }> = {
@@ -127,7 +130,7 @@ export class ComplianceRepository {
             else deptKey = 'general';
 
             depts[deptKey].staff++;
-            depts[deptKey].totalScore += (s ? s.score : 85);
+            depts[deptKey].totalScore += (s ? s.score : 100);
         });
 
         const deptCompliance = Object.values(depts)
@@ -173,7 +176,7 @@ export class ComplianceRepository {
                 level: 'low',
                 dot: 'bg-emerald-500',
                 text: 'text-emerald-700',
-                label: 'All registered certificates are currently within safe compliance validity.'
+                label: 'All registered staff and certificates are in good standing with zero identified risks.'
             });
         }
 
@@ -188,10 +191,7 @@ export class ComplianceRepository {
             renewalsDue: renewalsDueCount,
             highRisk: highRiskCount,
             unreadAlerts,
-            deptCompliance: deptCompliance.length > 0 ? deptCompliance : [
-                { name: 'Managers & Supervisors', staff: Math.max(1, Math.floor(users.length * 0.3)), score: 96, color: 'bg-emerald-500' },
-                { name: 'Foster Carers & Learners', staff: Math.max(1, Math.floor(users.length * 0.7)), score: agencyScore, color: 'bg-blue-500' }
-            ],
+            deptCompliance,
             liveRisks: liveRisks.slice(0, 6)
         };
     }
@@ -244,13 +244,20 @@ export class ComplianceRepository {
                 ? Math.round((completedEnrolments / userEnrolments.length) * 100)
                 : (userCerts.length > 0 ? Math.min(100, Math.round((validCerts / userCerts.length) * 100)) : 100);
 
-            const totalItems = Math.max(1, userCerts.length + (userEnrolments.length || 2));
-            const passedRequirements = validCerts + completedEnrolments;
-            let score = Math.round((passedRequirements / totalItems) * 100);
-            if (expired > 0) score = Math.max(20, score - (expired * 25));
-            score = Math.min(100, Math.max(15, score));
+            let score = 100;
+            const totalItems = userCerts.length + userEnrolments.length;
+            if (totalItems > 0) {
+                const passedRequirements = validCerts + completedEnrolments;
+                score = Math.round((passedRequirements / totalItems) * 100);
+                if (expired > 0) {
+                    score = Math.max(25, score - (expired * 25));
+                }
+            } else {
+                score = 100;
+            }
+            score = Math.min(100, Math.max(0, score));
 
-            const riskLevel = (expired > 0 || score < 70) ? 'high' : (expiring > 0 || score < 85 ? 'medium' : 'low');
+            const riskLevel = expired > 0 ? 'high' : (expiring > 0 || score < 80 ? 'medium' : 'low');
             const totalCpdHours = userCerts.reduce((acc, c) => acc + (c.cpd_hours || 0), 0);
 
             const roleName = user.user_roles[0]?.role?.name || 'Foster Carer';
@@ -337,54 +344,50 @@ export class ComplianceRepository {
      * Mandatory training completion tracker
      */
     async getMandatoryTraining(organizationId: string) {
-        const [users, certificates, enrolments] = await Promise.all([
-            prisma.user.findMany({ where: { organization_id: organizationId, status: 'ACTIVE' } }),
-            prisma.cPDCertificate.findMany({ where: { organization_id: organizationId } }),
+        const [users, courses, enrolments] = await Promise.all([
+            prisma.user.findMany({
+                where: { organization_id: organizationId, status: 'ACTIVE' },
+                select: { id: true }
+            }),
+            prisma.course.findMany({
+                where: {
+                    OR: [
+                        { organization_id: organizationId },
+                        { organization_id: null }
+                    ],
+                    mandatory: true
+                },
+                select: { id: true, title: true, category: true }
+            }),
             prisma.courseEnrolment.findMany({
                 where: { organization_id: organizationId },
-                include: { course: true }
+                select: { course_id: true, user_id: true, status: true }
             })
         ]);
 
-        const totalStaff = Math.max(1, users.length);
-        const now = new Date();
+        const totalStaff = users.length;
+        if (totalStaff === 0 || courses.length === 0) {
+            return [];
+        }
 
-        const areas = [
-            { area: 'Safeguarding & Child Protection (Level 1 & 2)', icon: '🛡️', keyword: 'safeguard' },
-            { area: 'Paediatric First Aid', icon: '🩹', keyword: 'first aid' },
-            { area: 'Health, Safety & Fire Risk Management', icon: '🔥', keyword: 'fire' },
-            { area: 'Equality, Diversity & Inclusion', icon: '🤝', keyword: 'equality' },
-            { area: 'GDPR & Social Care Record Keeping', icon: '🔒', keyword: 'gdpr' },
-            { area: 'Managing Challenging Behaviour & De-escalation', icon: '🧠', keyword: 'behaviour' }
-        ];
+        return courses.map(course => {
+            const courseEnrolments = enrolments.filter(e => e.course_id === course.id);
+            const completedStaff = new Set(
+                courseEnrolments.filter(e => e.status === 'COMPLETED').map(e => e.user_id)
+            );
+            const completedCount = completedStaff.size;
+            const overdueCount = Math.max(0, totalStaff - completedCount);
 
-        return areas.map(a => {
-            // Count staff who have completed a certificate or course enrolment in this area
-            const completedStaff = new Set();
-            certificates.forEach(c => {
-                const titleMatch = c.title.toLowerCase().includes(a.keyword) || (c.category && c.category.toLowerCase().includes(a.keyword));
-                const isValid = !c.expiry_date || (new Date(c.expiry_date) > now && c.status !== CertificateStatus.EXPIRED);
-                if (titleMatch && isValid) {
-                    completedStaff.add(c.user_id);
-                }
-            });
-
-            enrolments.forEach(e => {
-                const titleMatch = e.course?.title.toLowerCase().includes(a.keyword) || (e.course?.category && e.course.category.toLowerCase().includes(a.keyword));
-                if (titleMatch && e.status === 'COMPLETED') {
-                    completedStaff.add(e.user_id);
-                }
-            });
-
-            const completed = Math.min(totalStaff, completedStaff.size);
-            const overdue = Math.max(0, totalStaff - completed);
+            const cat = (course.category || '').toLowerCase();
+            const icon = cat.includes('safeguard') ? '🛡️' : cat.includes('health') || cat.includes('first') ? '🩹' : cat.includes('fire') ? '🔥' : '📚';
 
             return {
-                area: a.area,
-                icon: a.icon,
+                id: course.id,
+                area: course.title,
+                icon,
                 required: totalStaff,
-                completed,
-                overdue
+                completed: completedCount,
+                overdue: overdueCount
             };
         });
     }
